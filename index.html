@@ -181,7 +181,7 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
       <div id="bkInfo" class="small" style="line-height:1.6"></div>
       <button class="btn sm" onclick="shareNow()">📤 Yedeği WhatsApp'a gönder</button>
       <button class="btn sec sm" onclick="$('bkFile').click()">📥 Yedek dosyasından geri yükle</button>
-      <input type="file" id="bkFile" accept=".json,application/json,text/plain" style="display:none">
+      <input type="file" id="bkFile" accept=".txt,.json,text/plain,application/json" style="display:none">
       <details style="margin-top:10px"><summary class="small" style="cursor:pointer;font-weight:700;padding:6px 0">Telefondaki otomatik yedekler (<span id="bkCount">0</span>)</summary><div id="bkList"></div></details>
     </div>
     <h2>Hesap</h2>
@@ -549,13 +549,14 @@ function autoBackup(force){
 setTimeout(()=>autoBackup(),2500);
 setInterval(()=>autoBackup(),5*60*1000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ autoBackup(); renderBkBanner(); } });
-const bkName=ts=>{ const d=new Date(ts); return 'uretim-yedek-'+isoOf(d)+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'.json'; };
+const bkName=ts=>{ const d=new Date(ts); return 'uretim-yedek-'+isoOf(d)+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'.txt'; };
 const bkCounts=b=>`${(b.orders||[]).filter(o=>!o.archived).length} açık sipariş · ${(b.moves||[]).length} kayıt`;
 async function shareBackup(b){
-  const name=bkName(b.ts), blob=new Blob([JSON.stringify(b)],{type:'application/json'}), f=new File([blob],name,{type:'application/json'});
-  try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:'Üretim Takip yedeği',text:'Üretim Takip yedeği · '+fmtTs(b.ts)}); markShared(); return; } }
+  // Not: Android paylaşımı .json dosyasını kabul etmiyor, bu yüzden yedek .txt olarak gönderiliyor (içi yine JSON).
+  const name=bkName(b.ts), blob=new Blob([JSON.stringify(b)],{type:'text/plain'}), f=new File([blob],name,{type:'text/plain'});
+  try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:'Üretim Takip yedeği'}); markShared(); return; } }
   catch(e){ if(e.name==='AbortError') return; }
-  download(blob,name); markShared();
+  download(blob,name); markShared(); note('Bu tarayıcı dosya paylaşımını desteklemiyor. Yedek dosyası telefona indirildi; WhatsApp\'tan "Belge" olarak gönderebilirsiniz.');
 }
 function markShared(){ LS.set(BKS,today()); LS.set(BKS+'-ts',String(Date.now())); renderBk(); renderBkBanner(); toast('Yedek gönderildi ✓'); }
 function shareNow(){ if(!hasData()) return toast('Henüz yedeklenecek veri yok'); autoBackup(true); const l=bkList(); shareBackup(l[l.length-1]); }
