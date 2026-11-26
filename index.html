@@ -111,6 +111,12 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
 .obody{padding:2px 14px 14px}
 .obody>.ph:first-child{margin-top:12px}
 .opend{display:inline-block;margin-left:6px;font-size:11.5px;font-weight:800;background:#fff;color:var(--brand);border-radius:999px;padding:1px 8px;vertical-align:2px}
+.bkb{background:#fff7e6;border:1.5px solid #f0c674;border-radius:16px;padding:12px 14px;margin-bottom:12px}
+.bkb b{color:#8a5a00}.bkb p{margin:4px 0 0;font-size:14px;color:#6b5a3a}
+.bkb .btns .btn{margin-top:10px}
+.bkr{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.bkr div{flex:1;min-width:0}.bkr small{color:var(--mute)}
+.bkr button{border:none;border-radius:10px;background:#eef0f0;color:var(--brand);font:inherit;font-size:13px;font-weight:700;padding:9px 10px;flex:none}
 .ph{display:flex;justify-content:space-between;align-items:center;margin:12px 0 0;padding:7px 10px;background:#eef3f3;border-radius:10px;font-size:14px;font-weight:800;color:var(--brand)}
 .ph span{font-weight:600;color:var(--mute);font-size:13px}
 .ph+.crow{border-top:none}
@@ -148,6 +154,7 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
 <main>
   <!-- GÜNLÜK TUR -->
   <section class="page on" id="p-tur">
+    <div id="bkBanner"></div>
     <div class="toolbar">
       <span class="small">📅 Tarih</span>
       <input type="date" id="tDate">
@@ -169,10 +176,17 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
       <summary>Arşiv (<span id="archCount">0</span>)</summary>
       <div id="archList"></div>
     </details>
-    <h2>Hesap ve yedek</h2>
+    <h2>Yedekleme</h2>
+    <div class="card">
+      <div id="bkInfo" class="small" style="line-height:1.6"></div>
+      <button class="btn sm" onclick="shareNow()">📤 Yedeği WhatsApp'a gönder</button>
+      <button class="btn sec sm" onclick="$('bkFile').click()">📥 Yedek dosyasından geri yükle</button>
+      <input type="file" id="bkFile" accept=".json,application/json,text/plain" style="display:none">
+      <details style="margin-top:10px"><summary class="small" style="cursor:pointer;font-weight:700;padding:6px 0">Telefondaki otomatik yedekler (<span id="bkCount">0</span>)</summary><div id="bkList"></div></details>
+    </div>
+    <h2>Hesap</h2>
     <div class="card">
       <p class="small" style="margin:0" id="acctLine">Yerel mod (bulut bağlı değil)</p>
-      <button class="btn sec sm" id="expBtn">Yedeği indir (JSON)</button>
       <button class="btn sec sm" id="logoutBtn" style="display:none">Çıkış yap</button>
     </div>
   </section>
@@ -284,7 +298,7 @@ function applyOps(ops){ // ops: [['put',coll,obj]|['del',coll,id]]
   });
 }
 const DB={ write(ops){ if(window.Cloud&&window.Cloud.on) window.Cloud.write(ops); applyOps(ops); saveLocal(); renderAll(); } };
-function setRemote(d){ S=d; saveLocal(); renderAll(); }
+function setRemote(d){ S=d; saveLocal(); renderAll(); autoBackup(); }
 
 /* ================= YARDIMCI ================= */
 const $=id=>document.getElementById(id);
@@ -513,7 +527,62 @@ function saveOrder(){
   DB.write([['put','orders',o]]); closeSheet('orderSheet'); toast(old?'Sipariş güncellendi ✓':'Sipariş eklendi ✓');
 }
 function closeSheet(id){ $(id).classList.remove('open'); }
-$('expBtn').onclick=()=>{ const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}); download(b,'uretim-yedek-'+today()+'.json'); };
+/* ================= YEDEKLEME =================
+   - Her 2 saatte bir (sayfa açıkken veya açılınca) bu telefona otomatik yedek.
+   - Telefonda: son 12 yedek + son 15 günün her gününden bir yedek.
+   - Her gün bir kez WhatsApp'a gönderme hatırlatması. */
+const BK='uretim-yedekler', BKS='uretim-son-paylasim', BK_EVERY=2*3600*1000;
+let bkLater=false;
+function bkList(){ try{ return JSON.parse(LS.get(BK)||'[]'); }catch(e){ return []; } }
+function bkStore(l){ while(true){ try{ localStorage.setItem(BK,JSON.stringify(l)); return; }catch(e){ if(l.length<=1) return; l.shift(); } } }
+const snapshot=()=>({app:'uretim-takip',v:1,ts:Date.now(),orders:S.orders,moves:S.moves,meta:S.meta||{colors:[]}});
+function prune(l){ l.sort((a,b)=>a.ts-b.ts); const keep=new Set(l.slice(-12).map(b=>b.ts)), day={}, now=Date.now();
+  l.forEach(b=>{ if(now-b.ts<15*864e5) day[isoOf(new Date(b.ts))]=b.ts; }); Object.values(day).forEach(t=>keep.add(t)); return l.filter(b=>keep.has(b.ts)); }
+const hasData=()=>S.orders.length||S.moves.length;
+function cloudWaiting(){ return window.Cloud&&window.Cloud.on&&!window.Cloud.ready; }
+function autoBackup(force){
+  if(cloudWaiting()||!hasData()) return;
+  const l=bkList(), last=l.length?l[l.length-1].ts:0;
+  if(!force&&Date.now()-last<BK_EVERY) return;
+  l.push(snapshot()); bkStore(prune(l)); renderBk(); renderBkBanner();
+}
+setTimeout(()=>autoBackup(),2500);
+setInterval(()=>autoBackup(),5*60*1000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ autoBackup(); renderBkBanner(); } });
+const bkName=ts=>{ const d=new Date(ts); return 'uretim-yedek-'+isoOf(d)+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'.json'; };
+const bkCounts=b=>`${(b.orders||[]).filter(o=>!o.archived).length} açık sipariş · ${(b.moves||[]).length} kayıt`;
+async function shareBackup(b){
+  const name=bkName(b.ts), blob=new Blob([JSON.stringify(b)],{type:'application/json'}), f=new File([blob],name,{type:'application/json'});
+  try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:'Üretim Takip yedeği',text:'Üretim Takip yedeği · '+fmtTs(b.ts)}); markShared(); return; } }
+  catch(e){ if(e.name==='AbortError') return; }
+  download(blob,name); markShared();
+}
+function markShared(){ LS.set(BKS,today()); LS.set(BKS+'-ts',String(Date.now())); renderBk(); renderBkBanner(); toast('Yedek gönderildi ✓'); }
+function shareNow(){ if(!hasData()) return toast('Henüz yedeklenecek veri yok'); autoBackup(true); const l=bkList(); shareBackup(l[l.length-1]); }
+function renderBkBanner(){
+  const el=$('bkBanner'); if(!el) return;
+  if(!hasData()||cloudWaiting()||bkLater||LS.get(BKS)===today()){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="bkb"><b>📤 Günlük yedek</b><p>Bugünün yedeği henüz WhatsApp'a gönderilmedi.</p>
+    <div class="btns"><button class="btn sec sm" onclick="bkLater=true;renderBkBanner()">Sonra</button><button class="btn sm" onclick="shareNow()">Şimdi gönder</button></div></div>`;
+}
+function renderBk(){
+  if(!$('bkInfo')) return; const l=bkList(), last=l[l.length-1], sts=+LS.get(BKS+'-ts')||0;
+  $('bkInfo').innerHTML=`🕑 Otomatik yedek: her 2 saatte bir, bu telefonda.<br>Son otomatik yedek: <b>${last?fmtTs(last.ts):'henüz yok'}</b><br>📤 Son WhatsApp gönderimi: <b>${sts?fmtTs(sts):'henüz yok'}</b>`;
+  $('bkCount').textContent=l.length;
+  $('bkList').innerHTML=l.length?l.slice().reverse().map(b=>`<div class="bkr"><div><b>${fmtTs(b.ts)}</b><br><small>${bkCounts(b)}</small></div>
+    <button onclick="shareBackup(bkList().find(x=>x.ts===${b.ts}))">📤</button><button onclick="restoreBk(bkList().find(x=>x.ts===${b.ts}))">Geri yükle</button></div>`).join(''):`<p class="small">Henüz yedek yok</p>`;
+}
+async function restoreBk(b){
+  if(!b||!Array.isArray(b.orders)||!Array.isArray(b.moves)) return note('Bu dosya geçerli bir Üretim Takip yedeği değil.');
+  if(!await ask(`Bu yedek geri yüklensin mi?\n\n${fmtTs(b.ts||Date.now())}\n${bkCounts(b)}\n\nŞu anki veriler bu yedekteki verilerle değiştirilecek. (Önce şu anki hâlin yedeği alınır.)`)) return;
+  autoBackup(true);
+  const keepO=new Set(b.orders.map(o=>o.id)), keepM=new Set(b.moves.map(m=>m.id));
+  const ops=[...S.orders.filter(o=>!keepO.has(o.id)).map(o=>['del','orders',o.id]),...S.moves.filter(m=>!keepM.has(m.id)).map(m=>['del','moves',m.id]),
+    ...b.orders.map(o=>['put','orders',o]),...b.moves.map(m=>['put','moves',m]),['put','meta',b.meta||{colors:[]}]];
+  pend.P={}; pend.S={}; DB.write(ops); toast('Yedek geri yüklendi ✓');
+}
+$('bkFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ try{ restoreBk(JSON.parse(r.result)); }catch(err){ note('Dosya okunamadı. Doğru yedek dosyasını seçin.'); } }; r.readAsText(f); e.target.value=''; };
 
 /* ================= GEÇMİŞ ================= */
 function renderHist(){
@@ -633,7 +702,7 @@ $('shareBtn').onclick=()=>{ if(!lastCanvas) return; const o=orderById(rOrder);
     download(b,name); },'image/png'); };
 
 /* ================= GENEL ================= */
-function renderAll(){ purgeDue(); renderTur(); renderOrders(); renderHist(); renderRep(); }
+function renderAll(){ purgeDue(); renderTur(); renderOrders(); renderHist(); renderRep(); renderBk(); renderBkBanner(); }
 renderAll();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
