@@ -104,6 +104,12 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
 .ohd .ring{flex:none;display:flex;align-items:center;gap:8px}
 .ohd .ring div{font-size:12.5px;line-height:1.4;text-align:right;white-space:nowrap}
 .ohd .ring b.p{color:#8cc2f5}.ohd .ring b.s{color:#7ddba6}
+.sw{position:relative;background:#1f9d55;overflow:hidden}
+.sw .lbl{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#fff;font-weight:800;font-size:16px;opacity:0;transition:opacity .15s}
+.sw .ohd{position:relative;z-index:1;transition:transform .2s ease}
+.sw.drag .ohd{transition:none}
+.udot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffa53a;margin-left:7px;vertical-align:3px;box-shadow:0 0 0 3px rgba(255,165,58,.25)}
+.tip{text-align:center;font-size:12.5px;color:var(--mute);margin:0 8px 8px}
 .ohd .chev{flex:none;font-size:20px;color:#a9cfd2;transition:transform .2s}
 .ocard.closed .chev{transform:rotate(-90deg)}
 .ocard.closed .obody{display:none}
@@ -165,6 +171,7 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
     </div>
     <div id="turList"></div>
     <div class="legend" id="turLegend"><span><i style="background:var(--ship)"></i>Sevk edildi</span><span><i style="background:var(--prep)"></i>Depoda hazır</span></div>
+    <p class="tip" id="turTip">💡 Kapalı siparişin başlığını sağa kaydırın → rapor WhatsApp'a gider.<br><span class="udot" style="margin:0 4px 0 0;vertical-align:0"></span> = son değişiklik henüz gönderilmedi</p>
   </section>
 
   <!-- SİPARİŞLER -->
@@ -367,24 +374,25 @@ function renderTur(){
   if(renderTur.again){ renderTur.again=false; renderTur(); }
 }
 let closed=(()=>{ try{ return new Set(JSON.parse(LS.get('uretim-kapali')||'[]')); }catch(e){ return new Set(); } })();
-function toggleO(id){ closed.has(id)?closed.delete(id):closed.add(id); LS.set('uretim-kapali',JSON.stringify([...closed])); renderTur(); }
+function toggleO(id){ if(swiped){ swiped=false; return; } closed.has(id)?closed.delete(id):closed.add(id); LS.set('uretim-kapali',JSON.stringify([...closed])); renderTur(); }
 function ring(pp,ps){ const C1=2*Math.PI*19, C2=2*Math.PI*11;
   return `<svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><g transform="rotate(-90 24 24)" fill="none" stroke-width="5" stroke-linecap="round">
     <circle cx="24" cy="24" r="19" stroke="rgba(255,255,255,.14)"/><circle cx="24" cy="24" r="19" stroke="#8cc2f5" stroke-dasharray="${C1*Math.min(pp,100)/100} ${C1}"/>
     <circle cx="24" cy="24" r="11" stroke="rgba(255,255,255,.14)"/><circle cx="24" cy="24" r="11" stroke="#7ddba6" stroke-dasharray="${C2*Math.min(ps,100)/100} ${C2}"/></g></svg>`; }
 function oHead(o,T,{toggle,pendN}={}){
   const pp=pct(T.rc,T.q), ps=pct(Math.min(T.s,T.q),T.q), base=Math.max(T.q,T.r)||1, np=groupsOf(o).length;
-  return `<div class="ohd"${toggle?` onclick="toggleO('${o.id}')"`:''}>
-    <div class="l"><div class="cu">${esc(o.customer)}${o.no?`<span class="nob">#${esc(o.no)}</span>`:''}${pendN?`<span class="opend">+${pendN}</span>`:''}</div>
+  const head=`<div class="ohd"${toggle?` onclick="toggleO('${o.id}')"`:''}>
+    <div class="l"><div class="cu">${esc(o.customer)}${o.no?`<span class="nob">#${esc(o.no)}</span>`:''}${unshared(o)?'<span class="udot" title="Rapor gönderilmedi"></span>':''}${pendN?`<span class="opend">+${pendN}</span>`:''}</div>
       <div class="sub">${np>1?np+' ürün':esc(prodsText(o))||'Ürün'} · ${T.q} çuval · ${fmtD(o.date)}</div></div>
     <div class="ring"><div><b class="p">%${pp}</b> hazır<br><b class="s">%${ps}</b> sevk</div>${ring(pp,ps)}</div>
-    ${toggle?'<span class="chev">⌄</span>':''}</div>
+    ${toggle?'<span class="chev">⌄</span>':''}</div>`;
+  return (toggle?`<div class="sw" data-id="${o.id}"><span class="lbl">📤 Raporu gönder</span>${head}</div>`:head)+`
   <div class="hbar"><span style="width:${T.s/base*100}%;background:var(--ship)"></span><span style="width:${T.dep/base*100}%;background:var(--prep)"></span></div>`;
 }
 function drawTur(){
   $('mP').className=mode==='P'?'onP':''; $('mS').className=mode==='S'?'onS':'';
   const date=$('tDate').value, list=act();
-  $('turLegend').style.display=list.length?'flex':'none';
+  $('turLegend').style.display=list.length?'flex':'none'; $('turTip').style.display=list.length?'block':'none';
   if(!list.length){ $('turList').innerHTML=`<div class="card empty">Açık sipariş yok.<button class="btn" onclick="go('orders');openOrder()">＋ Sipariş ekle</button></div>`; renderSaveBar(); return; }
   $('turList').innerHTML=list.map(o=>{
     const T=calcOrder(o.id,true), allShip=o.colors.length&&o.colors.every(c=>{const x=calcColor(o.id,c.id);return x.s>=x.q;});
@@ -432,8 +440,41 @@ function savePend(){
     ops.push(['put','moves',{id:uid(),orderId,colorId,type:t,qty:pend[t][k],date,ts,batch}]); } });
   if(!ops.length) return;
   const {p,s}=pendTotals(); pend.P={}; pend.S={};
+  const ids=[...new Set(ops.map(o=>o[2].orderId))];
   DB.write(ops); toast(`Kaydedildi ✓ ${p?p+' hazır':''}${p&&s?', ':''}${s?s+' sevk':''}`);
+  shareOrders(ids);
 }
+
+/* ---- Rapor paylaşımı (kaydedince otomatik + başlığı sağa kaydırınca) ---- */
+const SHK='uretim-rapor-paylasim';
+function sharedMap(){ try{ return JSON.parse(LS.get(SHK)||'{}'); }catch(e){ return {}; } }
+const lastChange=o=>S.moves.reduce((a,m)=>m.orderId===o.id&&m.ts>a?m.ts:a,0);
+const unshared=o=>{ const t=lastChange(o); return t>0&&t>(sharedMap()[o.id]||0); };
+function markRep(ids){ const m=sharedMap(), n=Date.now(); ids.forEach(id=>m[id]=n); LS.set(SHK,JSON.stringify(m)); renderTur(); renderOrders(); }
+function pngBlob(cv){ const [,b]=cv.toDataURL('image/png').split(','), bin=atob(b), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return new Blob([a],{type:'image/png'}); }
+const repName=o=>'uretim-'+(o.customer+'-'+(o.no||'')).replace(/[^\p{L}\p{N}]+/gu,'-')+'-'+today()+'.png';
+async function shareOrders(ids,retry){
+  ids=ids.filter(orderById); if(!ids.length) return;
+  const files=ids.map(id=>{ const o=orderById(id); return new File([pngBlob(drawReport(o))],repName(o),{type:'image/png'}); });
+  const title='Üretim Raporu – '+ids.map(id=>oLabel(orderById(id))).join(', ');
+  try{ if(navigator.canShare&&navigator.canShare({files})){ await navigator.share({files,title}); markRep(ids); return; } }
+  catch(e){ if(e.name==='AbortError') return;
+    if(e.name==='NotAllowedError'&&!retry){ if(await ask('Rapor hazır. Şimdi WhatsApp\'a gönderilsin mi?')) shareOrders(ids,true); return; } }
+  files.forEach(f=>download(f,f.name)); markRep(ids);
+}
+let swiped=false;
+(()=>{ let sw=null,x0=0,y0=0,dx=0,horiz=null;
+  const list=$('turList');
+  list.addEventListener('touchstart',e=>{ const w=e.target.closest('.ocard.closed .sw'); if(!w) return; sw=w; x0=e.touches[0].clientX; y0=e.touches[0].clientY; dx=0; horiz=null; },{passive:true});
+  list.addEventListener('touchmove',e=>{ if(!sw) return; const t=e.touches[0], mx=t.clientX-x0, my=t.clientY-y0;
+    if(horiz===null&&(Math.abs(mx)>8||Math.abs(my)>8)) horiz=Math.abs(mx)>Math.abs(my)&&mx>0;
+    if(!horiz) return; e.preventDefault(); dx=Math.max(0,mx); sw.classList.add('drag');
+    sw.querySelector('.ohd').style.transform=`translateX(${dx}px)`; sw.querySelector('.lbl').style.opacity=Math.min(1,dx/(sw.offsetWidth/3)); },{passive:false});
+  list.addEventListener('touchend',()=>{ if(!sw) return; const w=sw, id=w.dataset.id, go=horiz&&dx>w.offsetWidth/3; sw=null;
+    w.classList.remove('drag'); w.querySelector('.ohd').style.transform=''; w.querySelector('.lbl').style.opacity=0;
+    if(horiz&&dx>8){ swiped=true; setTimeout(()=>swiped=false,400); }
+    if(go) shareOrders([id]); });
+})();
 
 /* ================= SİPARİŞLER ================= */
 function orderCard(o,where){
@@ -696,11 +737,7 @@ function drawReport(o){
   const out=document.createElement('canvas'); out.width=W; out.height=y+40; out.getContext('2d').drawImage(cv,0,0); return out;
 }
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000); }
-$('shareBtn').onclick=()=>{ if(!lastCanvas) return; const o=orderById(rOrder);
-  const name='uretim-'+(o.customer+'-'+(o.no||'')).replace(/[^\p{L}\p{N}]+/gu,'-')+'-'+today()+'.png';
-  lastCanvas.toBlob(async b=>{ const f=new File([b],name,{type:'image/png'});
-    try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:'Üretim Raporu – '+oLabel(o)}); return; } }catch(e){ if(e.name==='AbortError') return; }
-    download(b,name); },'image/png'); };
+$('shareBtn').onclick=()=>{ if(rOrder) shareOrders([rOrder]); };
 
 /* ================= GENEL ================= */
 function renderAll(){ purgeDue(); renderTur(); renderOrders(); renderHist(); renderRep(); renderBk(); renderBkBanner(); }
