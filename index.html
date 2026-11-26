@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f3b40">
 <title>Üretim Takip</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%230f3b40%27/%3E%3Cpath d=%27M18 34l9 9 19-21%27 fill=%27none%27 stroke=%27%237ddba6%27 stroke-width=%277%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Üretim">
 <style>
 :root{--brand:#0f3b40;--brand2:#1d5a60;--bg:#f3f2ef;--card:#fff;--ink:#1f2324;--mute:#6e7476;--line:#e3e1dc;--prep:#2f6fb3;--ship:#2e8b57;--warn:#c26a12;--bad:#b33;--r:14px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -194,6 +199,8 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
     <h2>Hesap</h2>
     <div class="card">
       <p class="small" style="margin:0" id="acctLine">Yerel mod (bulut bağlı değil)</p>
+      <button class="btn sm" id="installBtn" style="display:none">📲 Uygulamayı telefona yükle</button>
+      <p class="small" id="installHint" style="display:none;margin:10px 2px 0">📲 Uygulama olarak yüklemek için: Chrome menüsü (⋮) → <b>Uygulamayı yükle</b> / <b>Ana ekrana ekle</b>.</p>
       <button class="btn sec sm" id="logoutBtn" style="display:none">Çıkış yap</button>
     </div>
   </section>
@@ -743,6 +750,14 @@ $('shareBtn').onclick=()=>{ if(rOrder) shareOrders([rOrder]); };
 function renderAll(){ purgeDue(); renderTur(); renderOrders(); renderHist(); renderRep(); renderBk(); renderBkBanner(); }
 renderAll();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* Uygulama olarak yükleme (Chrome) */
+let installEvt=null;
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+function renderInstall(){ $('installBtn').style.display=installEvt&&!standalone()?'block':'none'; $('installHint').style.display=!installEvt&&!standalone()?'block':'none'; }
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; renderInstall(); });
+window.addEventListener('appinstalled',()=>{ installEvt=null; renderInstall(); toast('Uygulama yüklendi ✓'); });
+$('installBtn').onclick=async()=>{ if(!installEvt) return; installEvt.prompt(); try{ await installEvt.userChoice; }catch(e){} installEvt=null; renderInstall(); };
+renderInstall();
 </script>
 <script type="module">
 /* ============ FIREBASE (Astar Takip ile aynı proje) ============ */
