@@ -63,6 +63,14 @@ label.f{display:block;font-size:13px;color:var(--mute);margin:12px 2px 6px;font-
 .tot{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .tot span{background:#eef3f3;border-radius:999px;padding:5px 11px;font-size:13.5px;font-weight:800;color:var(--brand)}
 /* Sipariş top no rozeti */
+/* Etiket bekleyenler: hareketli çerçeve */
+@property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
+.card.attn{border:3px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,conic-gradient(from var(--ang),#e0402a,#f0a020,#2f6fb3,#2e8b57,#e0402a) border-box;animation:spin 2.2s linear infinite}
+@keyframes spin{to{--ang:360deg}}
+.pq{flex:none;width:42px;height:42px;padding:2px;background:#fff;border:1px solid var(--line);border-radius:6px}.pq svg{width:100%;height:100%;display:block}
+.pnum{flex:none;min-width:46px;text-align:center;font-weight:900;color:var(--brand);font-size:17px;line-height:1.05}.pnum small{display:block;font-size:10.5px;font-weight:700;color:var(--mute)}
+#uPend .roll{gap:8px}.tx.pt>div{font-size:14px}.tx.pt .mk2{font-weight:800;font-size:15px}.tx.pt .small{font-size:12px}
+.cuh{display:flex;justify-content:space-between;gap:8px;margin:14px 2px 4px;font-weight:800;color:var(--brand)}.cuh span{font-size:13px;color:var(--mute)}
 .pos{flex:none;width:26px;height:26px;border-radius:50%;background:#e9f1f1;color:var(--brand);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
 /* Desen fotoğrafı + sipariş tablosu */
 .thumb{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;object-fit:cover;background:#eef0f0;border:1px solid var(--line);font-size:18px;vertical-align:middle;cursor:pointer}
@@ -211,9 +219,6 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
       </div>
       <h2>🏷 Etiket bekleyenler (<span id="uPendN">0</span>)</h2>
       <div class="card" id="uPend"></div>
-      <h2>Bugün üretilen</h2>
-      <div class="tot" id="uTodayTot" style="margin:0 4px 8px"></div>
-      <div class="card" id="uToday"></div>
       <h2>Etiket ayarı</h2>
       <div class="card">
         <label class="f" style="margin-top:0">Etiket boyutu (yazıcıya göre)</label>
@@ -230,6 +235,7 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
         <p class="small" style="margin:10px 2px 0">Etiket, telefonun “Yazdır” penceresinden yazıcıya gider. Bluetooth etiket yazıcısı Android yazdırma hizmetini desteklemeli. Ölçek %100 olmalı.</p>
       </div>
     </div>
+      <button class="btn sec" id="uTodayBtn" onclick="openToday()">📋 Bugün üretilenler</button>
   </section>
 
   <!-- SİPARİŞLER -->
@@ -379,6 +385,14 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
   <div class="btns"><button class="btn sec" id="dlgNo">Vazgeç</button><button class="btn" id="dlgYes">Evet</button></div>
 </div></div>
 <!-- Desen/renk seçimi -->
+<div class="sheet" id="todaySheet" onclick="if(event.target===this)closeSheet('todaySheet')">
+  <div class="box">
+    <h3>📋 Bugün üretilenler</h3>
+    <div class="tot" id="uTodayTot" style="margin:6px 0 10px"></div>
+    <div id="uToday"></div>
+    <button class="btn sec" onclick="closeSheet('todaySheet')">Kapat</button>
+  </div>
+</div>
 <div class="sheet" id="pickSheet" onclick="if(event.target===this)closeSheet('pickSheet')">
   <div class="box">
     <h3 id="pickTitle">Desen ve renk</h3>
@@ -557,10 +571,18 @@ function saveRoll(){
 /* Etiket bekleyenler: kaydedilmiş ama etiketi henüz basılmamış toplar (eski kayıtlar basılmış sayılır) */
 const pendingRolls=()=>S.rolls.filter(r=>!r.printTs&&!r.parti&&r.ts>0&&orderById(r.orderId)&&!orderById(r.orderId).archived).sort((a,b)=>a.ts-b.ts);
 function renderPending(){
-  const l=pendingRolls(); $('uPendN').textContent=l.length;
+  const l=pendingRolls(); $('uPendN').textContent=l.length; $('uPend').classList.toggle('attn',l.length>0);
   $('uPend').innerHTML=l.length?`<div class="tot" style="margin:0 0 6px"><span>${l.length} top</span><span>${f1(l.reduce((a,r)=>a+r.m,0))} m</span><span>${f1(l.reduce((a,r)=>a+r.kg,0))} kg</span></div>`+
-      l.map(r=>rollRow(r,{pos:onoOf(r)})).join('')+`<button class="btn" onclick="printPending()">🖨 ${l.length} etiketi yazdır</button>`
+      l.map((r,i)=>pendRow(r,i+1)).join('')+`<button class="btn" onclick="printPending()">🖨 ${l.length} etiketi yazdır</button>`
     :`<p class="small" style="margin:0">Etiket bekleyen top yok</p>`;
+}
+function pendRow(r,i){ // sıra no · Top no · bilgi · QR
+  const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?'};
+  const q=qrcode(0,'M'); q.addData(r.id); q.make();
+  return `<div class="roll"><span class="pos" title="Sıra">${i}</span><div class="pnum">Top ${onoOf(r)}<small>/ ${orderQty(o)}</small></div>
+    <div class="tx pt"><div><b>${esc([o?prodOf(o,c):'',c.name].filter(Boolean).join(' · '))}</b></div><div class="mk2">${f1(r.m)} m · ${f1(r.kg)} kg</div><div class="small">${esc(oLabel(o))} · No ${r.id}</div></div>
+    <span class="pq">${q.createSvgTag({cellSize:2,margin:0,scalable:true})}</span>
+    <button class="ib" onclick="reprint('${r.id}')" aria-label="etiket yazdır">🖨</button></div>`;
 }
 function printPending(){ const l=pendingRolls(); if(!l.length) return; printRolls(l);
   const ts=Date.now(); DB.write(l.map(r=>['put','rolls',{...r,printTs:ts}])); }
@@ -572,12 +594,16 @@ function rollRow(r,{withOrder=true,actions=true,extra='',pos=0}={}){
     <div class="mk">${f1(r.m)} m<small>${f1(r.kg)} kg</small></div>
     ${actions?`<button class="ib" onclick="reprint('${r.id}')" aria-label="etiket yazdır">🖨</button><button class="ib del" onclick="delRoll('${r.id}')" aria-label="sil">🗑</button>`:''}${extra}</div>`;
 }
-function renderToday(){
-  const t=today(), pend=new Set(pendingRolls().map(r=>r.id));
-  const l=S.rolls.filter(r=>r.date===t&&!pend.has(r.id)&&orderById(r.orderId)&&!orderById(r.orderId).archived).sort((a,b)=>b.ts-a.ts);
-  const all=S.rolls.filter(r=>r.date===t&&orderById(r.orderId)&&!orderById(r.orderId).archived);
+function openToday(){ renderToday(); $('todaySheet').classList.add('open'); }
+function renderToday(){ // bugün üretilenler, müşteriye göre
+  const t=today(), all=S.rolls.filter(r=>r.date===t&&orderById(r.orderId)&&!orderById(r.orderId).archived).sort((a,b)=>b.ts-a.ts);
+  const sum=l=>`${l.length} top · ${f1(l.reduce((a,r)=>a+r.m,0))} m · ${f1(l.reduce((a,r)=>a+r.kg,0))} kg`;
+  $('uTodayBtn').textContent='📋 Bugün üretilenler'+(all.length?` (${all.length})`:'');
   $('uTodayTot').innerHTML=all.length?`<span>${all.length} top</span><span>${f1(all.reduce((a,r)=>a+r.m,0))} m</span><span>${f1(all.reduce((a,r)=>a+r.kg,0))} kg</span>`:'';
-  $('uToday').innerHTML=l.length?l.map(r=>rollRow(r)).join(''):`<p class="small" style="margin:0">Bugün etiketi basılmış top yok</p>`;
+  if(!all.length){ $('uToday').innerHTML=`<div class="card empty" style="margin:0">Bugün henüz top yok</div>`; return; }
+  const cus=[...new Set(all.map(r=>orderById(r.orderId).customer))].sort((a,b)=>a.localeCompare(b,'tr'));
+  $('uToday').innerHTML=cus.map(cu=>{ const l=all.filter(r=>orderById(r.orderId).customer===cu);
+    return `<div class="cuh">${esc(cu)}<span>${sum(l)}</span></div><div class="card" style="margin:0">${l.map(r=>rollRow(r)).join('')}</div>`; }).join('');
 }
 function reprint(id){ const r=S.rolls.find(x=>x.id===id); if(!r) return; printRolls([r]); if(!r.printTs&&!r.parti) DB.write([['put','rolls',{...r,printTs:Date.now()}]]); }
 async function delRoll(id){
