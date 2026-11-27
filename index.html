@@ -525,9 +525,7 @@ function savePend(){
     ops.push(['put','moves',{id:uid(),orderId,colorId,type:t,qty:pend[t][k],date,ts,batch}]); } });
   if(!ops.length) return;
   const {p,s}=pendTotals(); pend.P={}; pend.S={};
-  const ids=[...new Set(ops.map(o=>o[2].orderId))];
   DB.write(ops); toast(`Kaydedildi ✓ ${p?p+' hazır':''}${p&&s?', ':''}${s?s+' sevk':''}`);
-  shareOrders(ids);
 }
 
 /* ---- Rapor paylaşımı (kaydedince otomatik + başlığı sağa kaydırınca) ---- */
@@ -944,7 +942,7 @@ function stopCam(){ if(scanTimer) clearInterval(scanTimer); scanTimer=null; if(s
   const v=$('cam'); if(v){ v.srcObject=null; v.style.display='none'; } const b=$('camBtn'); if(b) b.textContent='📷 Kamerayı aç'; }
 
 /* ================= GENEL ================= */
-function renderAll(){ purgeDue(); renderTur(); renderOrders(); renderHist(); renderRep(); renderBk(); renderBkBanner(); renderEtk(); }
+function renderAll(){ S.labels=S.labels||[]; purgeDue(); renderTur(); renderOrders(); renderHist(); renderRep(); renderBk(); renderBkBanner(); renderEtk(); }
 renderAll();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 /* Uygulama olarak yükleme (Chrome) */
