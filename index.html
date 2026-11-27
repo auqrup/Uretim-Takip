@@ -64,6 +64,25 @@ label.f{display:block;font-size:13px;color:var(--mute);margin:12px 2px 6px;font-
 .dayh{font-size:13px;font-weight:800;color:var(--brand);margin:14px 4px 4px}
 .tot{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .tot span{background:#eef3f3;border-radius:999px;padding:5px 11px;font-size:13.5px;font-weight:800;color:var(--brand)}
+/* Parti girişi */
+.phead{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:10px 12px;background:var(--brand);color:#fff;border-radius:12px;font-weight:700}
+.phead b{font-size:19px}
+.prow{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.pno{flex:none;width:40px;height:40px;border-radius:50%;background:#0f3b40;color:#fff;font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;margin-top:4px}
+.pf{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.pf select{padding:10px;font-size:15px;font-weight:600}
+.pf .row2 input{padding:11px 34px 11px 12px;font-size:19px;font-weight:800}
+.prow .ib{margin-top:4px}
+.pos{flex:none;width:26px;height:26px;border-radius:50%;background:#e9f1f1;color:var(--brand);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+details.pblk{border-bottom:1px solid var(--line)}
+details.pblk:last-child{border-bottom:none}
+details.pblk summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 0;cursor:pointer;font-size:15px}
+details.pblk summary::-webkit-details-marker{display:none}
+details.pblk summary>div{flex:1;min-width:0}
+details.pblk summary small{display:block;color:var(--mute);font-size:12.5px}
+details.pblk summary::before{content:'▸';color:var(--mute);font-size:14px;transition:transform .15s}
+details.pblk[open] summary::before{transform:rotate(90deg)}
+details.pblk .roll{padding-left:6px}
 /* Sipariş kartları */
 .ocard{background:var(--card);border-radius:18px;overflow:hidden;margin-bottom:22px;border:1.5px solid #c9d6d6;box-shadow:0 3px 10px rgba(15,59,64,.08)}
 .ocard.delpend{border:2px dashed var(--bad)}
@@ -180,18 +199,15 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
       <div class="card">
         <label class="f" style="margin-top:0">Sipariş</label>
         <select id="uOrder"></select>
-        <label class="f">Desen</label>
-        <div class="chips" id="uDesen"></div>
-        <label class="f">Renk</label>
-        <div class="chips" id="uRenk"></div>
-        <div class="sel-sum" id="uSum" style="display:none"></div>
-        <div class="row2" style="margin-top:4px">
-          <div><label class="f">Metre</label><div class="unit"><input id="uM" class="big-in" inputmode="decimal" autocomplete="off" placeholder="0"><span>m</span></div></div>
-          <div><label class="f">Ağırlık</label><div class="unit"><input id="uKg" class="big-in" inputmode="decimal" autocomplete="off" placeholder="0"><span>kg</span></div></div>
-        </div>
-        <button class="btn big" id="uSave">🏷 Kaydet ve etiket yazdır</button>
+        <div class="phead"><span>🏷 Parti <b id="uPartiNo">1</b></span><span id="uCount">0 / 15 top</span></div>
+        <p class="small" style="margin:4px 2px 8px">Topların üzerine kalemle 1, 2, 3… yazın ve aynı sırayla girin. Etiketler bu sırayla basılır.</p>
+        <div id="uRows"></div>
+        <button class="btn sec sm" id="uAdd">＋ Top ekle</button>
+        <div class="tot" id="uTot"></div>
+        <button class="btn big" id="uSave">🏷 Partiyi kaydet ve etiketleri yazdır</button>
+        <button class="btn sec sm" onclick="clearParti()">Partiyi temizle</button>
       </div>
-      <h2>Bugün üretilen toplar</h2>
+      <h2>Bugünkü partiler</h2>
       <div class="card" id="uToday"></div>
       <h2>Etiket ayarı</h2>
       <div class="card">
@@ -413,64 +429,102 @@ function go(p){ if(p!=='yukle') stopCam(); page=p;
   window.scrollTo(0,0); renderAll(); if(p==='yukle') setTimeout(()=>$('sManual').focus(),60); }
 document.querySelectorAll('#tabbar button').forEach(b=>b.onclick=()=>go(b.dataset.p));
 
-/* ================= ÜRETİM: TOP GİRİŞİ ================= */
-let uSel={o:'',d:null,c:''};
+/* ================= ÜRETİM: PARTİ GİRİŞİ =================
+   Toplar partiler halinde gelir (en fazla 15). İşçi topların üzerine kalemle 1,2,3… yazar,
+   tabloda aynı sırayla metre/kg girer, "Partiyi kaydet" ile hepsi kaydedilir ve etiketler
+   aynı sırayla tek seferde basılır. Taslak telefonda saklanır (uygulama kapanırsa kaybolmaz). */
+const MAXP=15, DKEY='uretim-parti-taslak', LASTC='uretim-son-renk';
+let PD=(()=>{ try{ const d=JSON.parse(LS.get(DKEY)); if(d&&Array.isArray(d.rows)) return d; }catch(e){} return {o:'',rows:[]}; })();
+const saveDraft=()=>LS.set(DKEY,JSON.stringify(PD));
+function comboOpts(o,sel){
+  return groupsOf(o).map(([p,cs])=>`<optgroup label="${esc(p?dLabel(p):'—')}">`+cs.map(c=>{ const x=calcColor(o.id,c.id);
+    return `<option value="${c.id}"${c.id===sel?' selected':''}>${esc(p?p+' – ':'')}${esc(c.name)} (${x.r}/${x.q})</option>`; }).join('')+'</optgroup>').join('');
+}
+function defaultCid(o){ const last=PD.rows.length?PD.rows[PD.rows.length-1].cid:LS.get(LASTC); return colorOf(o,last)?last:(o.colors[0]?o.colors[0].id:''); }
 function renderUretim(){
   const l=act(); $('uNoOrder').style.display=l.length?'none':'block'; $('uForm').style.display=l.length?'block':'none';
-  if(!l.find(o=>o.id===uSel.o)) uSel={o:l.length===1?l[0].id:(l[0]?l[0].id:''),d:null,c:''};
-  $('uOrder').innerHTML=l.map(o=>`<option value="${o.id}">${esc(oLabel(o))}</option>`).join(''); $('uOrder').value=uSel.o;
-  const o=orderById(uSel.o);
-  if(!o){ $('uDesen').innerHTML=''; $('uRenk').innerHTML=''; $('uSum').style.display='none'; renderToday(); return; }
-  const G=groupsOf(o);
-  if(uSel.d===null||!G.find(g=>g[0]===uSel.d)) uSel.d=G.length===1?G[0][0]:(G.find(g=>g[0]===uSel.d)?uSel.d:null);
-  $('uDesen').innerHTML=G.map(([p,cs])=>{ const T=calcSet(o,cs); return `<button class="chip${p===uSel.d?' on':''}" onclick="pickD(${JSON.stringify(p).replace(/"/g,'&quot;')})">${esc(p||'—')}<small>${T.r} / ${T.q} top</small></button>`; }).join('');
-  const g=G.find(x=>x[0]===uSel.d), cs=g?g[1]:[];
-  if(!cs.find(c=>c.id===uSel.c)) uSel.c=cs.length===1?cs[0].id:'';
-  $('uRenk').innerHTML=g?cs.map(c=>{ const x=calcColor(o.id,c.id); return `<button class="chip${c.id===uSel.c?' on':''}${x.r>=x.q?(x.r>x.q?' over':' full'):''}" onclick="pickC('${c.id}')"><span class="dot" style="background:${c.hex};width:20px;height:20px"></span><span>${esc(c.name)}<small>${x.r} / ${x.q} top${x.r>=x.q?(x.r>x.q?' · fazla':' ✓'):''}</small></span></button>`; }).join('')
-    :`<p class="small" style="margin:0">Önce desen seçin</p>`;
-  const c=colorOf(o,uSel.c);
-  if(c){ const x=calcColor(o.id,c.id), next=nextN(o.id,c.id);
-    $('uSum').style.display='block';
-    $('uSum').innerHTML=`Sıradaki: <b>Top ${next} / ${x.q}</b> · ${esc(cLabel(o,c))}<small>Bu renkte üretilen: ${x.r} top · ${f1(x.m)} m · ${f1(x.kg)} kg${x.kal?` · Kalan ${x.kal} top`:x.fz?` · Fazla +${x.fz}`:' · Tamamlandı ✓'}</small>`;
-  } else $('uSum').style.display='none';
-  renderToday();
+  if(!l.find(o=>o.id===PD.o)){ PD={o:l[0]?l[0].id:'',rows:[]}; saveDraft(); }
+  $('uOrder').innerHTML=l.map(o=>`<option value="${o.id}">${esc(oLabel(o))}</option>`).join(''); $('uOrder').value=PD.o;
+  const o=orderById(PD.o); if(!o){ renderToday(); return; }
+  PD.rows.forEach(r=>{ if(!colorOf(o,r.cid)) r.cid=defaultCid(o); });
+  if(!PD.rows.length){ PD.rows.push({cid:defaultCid(o),m:'',kg:''}); saveDraft(); }
+  $('uPartiNo').textContent=nextParti();
+  $('uRows').innerHTML=PD.rows.map((r,i)=>`<div class="prow">
+      <div class="pno">${i+1}</div>
+      <div class="pf"><select data-i="${i}" onchange="rowSet(${i},'cid',this.value)">${comboOpts(o,r.cid)}</select>
+        <div class="row2"><div class="unit"><input inputmode="decimal" autocomplete="off" placeholder="Metre" value="${esc(r.m)}" data-m="${i}" oninput="rowSet(${i},'m',this.value)"><span>m</span></div>
+        <div class="unit"><input inputmode="decimal" autocomplete="off" placeholder="Kg" value="${esc(r.kg)}" data-k="${i}" oninput="rowSet(${i},'kg',this.value)"><span>kg</span></div></div></div>
+      <button class="ib del" onclick="rowDel(${i})" aria-label="satırı sil">✕</button></div>`).join('');
+  $('uAdd').style.display=PD.rows.length>=MAXP?'none':'block';
+  renderPTot(); renderToday();
 }
-$('uOrder').onchange=e=>{ uSel={o:e.target.value,d:null,c:''}; renderUretim(); };
-function pickD(p){ uSel.d=p; uSel.c=''; renderUretim(); }
-function pickC(id){ uSel.c=id; renderUretim(); setTimeout(()=>$('uM').focus(),30); }
+function renderPTot(){
+  const ok=PD.rows.filter(r=>num(r.m)>0&&num(r.kg)>0), m=ok.reduce((a,r)=>a+num(r.m),0), kg=ok.reduce((a,r)=>a+num(r.kg),0);
+  $('uCount').textContent=`${PD.rows.length} / ${MAXP} top`;
+  $('uTot').innerHTML=`<span>${ok.length} top hazır</span><span>${f1(m)} m</span><span>${f1(kg)} kg</span>`;
+  $('uSave').textContent=`🏷 Partiyi kaydet ve ${PD.rows.length} etiket yazdır`;
+}
+$('uOrder').onchange=async e=>{ const v=e.target.value;
+  if(PD.rows.some(r=>r.m||r.kg)&&!await ask('Bu partideki girilmiş satırlar silinsin ve sipariş değiştirilsin mi?')){ e.target.value=PD.o; return; }
+  PD={o:v,rows:[]}; saveDraft(); renderUretim(); };
+function rowSet(i,k,v){ PD.rows[i][k]=v; if(k==='cid') LS.set(LASTC,v); saveDraft(); renderPTot(); }
+function rowDel(i){ PD.rows.splice(i,1); saveDraft(); renderUretim(); }
+function rowAdd(focus=true){
+  if(PD.rows.length>=MAXP) return toast('Bir partide en fazla '+MAXP+' top');
+  const o=orderById(PD.o); if(!o) return; PD.rows.push({cid:defaultCid(o),m:'',kg:''}); saveDraft(); renderUretim();
+  if(focus) setTimeout(()=>{ const ins=$('uRows').querySelectorAll('input[data-m]'); ins[ins.length-1]&&ins[ins.length-1].focus(); },30);
+}
+$('uAdd').onclick=()=>rowAdd();
+$('uRows').addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const t=e.target; e.preventDefault();
+  if(t.dataset.m!==undefined) return $('uRows').querySelector(`input[data-k="${t.dataset.m}"]`).focus();
+  if(t.dataset.k!==undefined){ const i=+t.dataset.k; if(i===PD.rows.length-1) rowAdd(); else $('uRows').querySelector(`input[data-m="${i+1}"]`).focus(); } });
+async function clearParti(){ if(PD.rows.some(r=>r.m||r.kg)&&!await ask('Bu partideki tüm satırlar silinsin mi?')) return; PD.rows=[]; saveDraft(); renderUretim(); }
 function nextN(oid,cid){ return rollsOf(oid,cid).reduce((a,r)=>Math.max(a,r.n||0),0)+1; }
-// Seri no hiç tekrar kullanılmaz: silinen topun numarası da atlanır (u_meta.lastSerial).
-function nextSerial(){ return String(Math.max(S.meta.lastSerial||0,S.rolls.reduce((a,r)=>Math.max(a,parseInt(r.id)||0),0))+1).padStart(6,'0'); }
-$('uKg').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); saveRoll(); } });
-$('uM').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('uKg').focus(); } });
-$('uSave').onclick=()=>saveRoll();
-function saveRoll(){
-  const o=orderById(uSel.o), c=colorOf(o,uSel.c);
-  if(!o) return toast('Sipariş seçin'); if(!c) return toast('Desen ve renk seçin');
-  const m=num($('uM').value), kg=num($('uKg').value);
-  if(!(m>0)) { toast('Metre girin'); return $('uM').focus(); }
-  if(!(kg>0)) { toast('Ağırlık (kg) girin'); return $('uKg').focus(); }
-  if(m>5000||kg>2000) return note('Metre veya kg çok büyük görünüyor. Kontrol edin.');
-  const r={id:nextSerial(),orderId:o.id,colorId:c.id,n:nextN(o.id,c.id),m:Math.round(m*100)/100,kg:Math.round(kg*100)/100,date:today(),ts:Date.now()};
-  DB.write([['put','rolls',r],['put','meta',{...S.meta,lastSerial:parseInt(r.id)}]]);
-  $('uM').value=''; $('uKg').value='';
-  toast(`Top ${r.n} kaydedildi · No ${r.id}`);
-  printRolls([r]);
+// Seri no ve parti no hiç tekrar kullanılmaz (u_meta.lastSerial / lastParti).
+function nextSerial(){ return Math.max(S.meta.lastSerial||0,S.rolls.reduce((a,r)=>Math.max(a,parseInt(r.id)||0),0))+1; }
+function nextParti(){ return Math.max(S.meta.lastParti||0,S.rolls.reduce((a,r)=>Math.max(a,r.parti||0),0))+1; }
+$('uSave').onclick=()=>saveParti();
+async function saveParti(){
+  const o=orderById(PD.o); if(!o) return toast('Sipariş seçin');
+  const rows=PD.rows.filter(r=>r.m||r.kg||PD.rows.length===1);
+  if(!rows.length) return toast('Önce top girin');
+  for(let i=0;i<PD.rows.length;i++){ const r=PD.rows[i], m=num(r.m), kg=num(r.kg);
+    if(!colorOf(o,r.cid)) return note(`${i+1}. satır: desen ve renk seçin.`);
+    if(!(m>0)||!(kg>0)){ note(`${i+1}. satır: metre ve kg girin (veya satırı silin).`); return; }
+    if(m>5000||kg>2000) return note(`${i+1}. satır: metre veya kg çok büyük görünüyor. Kontrol edin.`); }
+  const n0=PD.rows.length, M=PD.rows.reduce((a,r)=>a+num(r.m),0), K=PD.rows.reduce((a,r)=>a+num(r.kg),0);
+  if(!await ask(`Parti ${nextParti()} kaydedilsin ve ${n0} etiket yazdırılsın mı?\n${oLabel(o)}\n${n0} top · ${f1(M)} m · ${f1(K)} kg`)) return;
+  let ser=nextSerial(); const parti=nextParti(), ts=Date.now(), nn={}, rolls=[];
+  PD.rows.forEach((r,i)=>{ nn[r.cid]=nn[r.cid]||nextN(o.id,r.cid);
+    rolls.push({id:String(ser++).padStart(6,'0'),orderId:o.id,colorId:r.cid,n:nn[r.cid]++,m:Math.round(num(r.m)*100)/100,kg:Math.round(num(r.kg)*100)/100,
+      parti,pos:i+1,size:n0,date:today(),ts:ts+i}); });
+  DB.write(rolls.map(r=>['put','rolls',r]).concat([['put','meta',{...S.meta,lastSerial:ser-1,lastParti:parti}]]));
+  PD.rows=[]; saveDraft(); renderUretim();
+  toast(`Parti ${parti} kaydedildi · ${n0} top`);
+  printRolls(rolls);
 }
 function rollRow(r,{withOrder=true,actions=true,extra=''}={}){
   const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?',hex:'#ccc'}, q=c.qty||0;
-  return `<div class="roll"><span class="dot" style="background:${c.hex};width:20px;height:20px"></span>
+  return `<div class="roll">${r.pos?`<span class="pos">${r.pos}</span>`:''}<span class="dot" style="background:${c.hex};width:18px;height:18px"></span>
     <div class="tx"><div><b>Top ${r.n}${q?' / '+q:''}</b> · ${esc(o?cLabel(o,c):c.name)}</div>
-      <small class="small">${withOrder?esc(oLabel(o))+' · ':''}No ${r.id} · ${fmtTs(r.ts).slice(-5)} <span class="tag ${r.loadTs?'S':'D'}">${r.loadTs?'Sevk edildi':'Depoda'}</span></small></div>
+      <small class="small">${withOrder?esc(oLabel(o))+' · ':''}${r.parti?'P'+r.parti+' · ':''}No ${r.id} <span class="tag ${r.loadTs?'S':'D'}">${r.loadTs?'Sevk':'Depoda'}</span></small></div>
     <div class="mk">${f1(r.m)} m<small>${f1(r.kg)} kg</small></div>
     ${actions?`<button class="ib" onclick="reprint('${r.id}')" aria-label="yeniden yazdır">🖨</button><button class="ib del" onclick="delRoll('${r.id}')" aria-label="sil">🗑</button>`:''}${extra}</div>`;
 }
-function renderToday(){
-  const t=today(), l=S.rolls.filter(r=>r.date===t&&orderById(r.orderId)&&!orderById(r.orderId).archived).sort((a,b)=>b.ts-a.ts);
-  const m=l.reduce((a,r)=>a+(r.m||0),0), kg=l.reduce((a,r)=>a+(r.kg||0),0);
-  $('uToday').innerHTML=l.length?`<div class="tot" style="margin:0 0 6px"><span>${l.length} top</span><span>${f1(m)} m</span><span>${f1(kg)} kg</span></div>`+l.map(r=>rollRow(r)).join('')
-    :`<p class="small" style="margin:0">Bugün henüz top girilmedi</p>`;
+function partiGroups(list){ const g={}; list.forEach(r=>{ const k=r.parti||('x'+r.id); (g[k]=g[k]||[]).push(r); });
+  return Object.values(g).map(a=>a.sort((x,y)=>(x.pos||0)-(y.pos||0)||x.ts-y.ts)).sort((a,b)=>b[0].ts-a[0].ts); }
+function partiBlock(rs,withOrder){
+  const r0=rs[0], o=orderById(r0.orderId), m=rs.reduce((a,r)=>a+(r.m||0),0), kg=rs.reduce((a,r)=>a+(r.kg||0),0);
+  return `<details class="pblk"><summary><div><b>${r0.parti?'Parti '+r0.parti:'Tek top'}</b> · ${rs.length} top · ${f1(m)} m · ${f1(kg)} kg<small>${withOrder?esc(oLabel(o))+' · ':''}${fmtTs(r0.ts)}</small></div>
+    ${r0.parti?`<button class="ib" onclick="event.preventDefault();reprintParti(${r0.parti})" aria-label="partiyi yeniden yazdır">🖨</button>`:''}</summary>${rs.map(r=>rollRow(r,{withOrder:false})).join('')}</details>`;
 }
+function renderToday(){
+  const t=today(), l=S.rolls.filter(r=>r.date===t&&orderById(r.orderId)&&!orderById(r.orderId).archived);
+  const m=l.reduce((a,r)=>a+(r.m||0),0), kg=l.reduce((a,r)=>a+(r.kg||0),0);
+  $('uToday').innerHTML=l.length?`<div class="tot" style="margin:0 0 6px"><span>${l.length} top</span><span>${f1(m)} m</span><span>${f1(kg)} kg</span></div>`+partiGroups(l).map(rs=>partiBlock(rs,true)).join('')
+    :`<p class="small" style="margin:0">Bugün henüz parti girilmedi</p>`;
+}
+function reprintParti(p){ const rs=S.rolls.filter(r=>r.parti===p).sort((a,b)=>(a.pos||0)-(b.pos||0)); if(rs.length) printRolls(rs); }
 function reprint(id){ const r=S.rolls.find(x=>x.id===id); if(r) printRolls([r]); }
 async function delRoll(id){
   const r=S.rolls.find(x=>x.id===id); if(!r) return; const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?'};
@@ -491,14 +545,14 @@ function labelHTML(r,L){
   const vert=L.h>=L.w*0.95, pad=2.5;
   const qs=vert?Math.min(L.w-2*pad,L.h*0.42):Math.min(L.h-2*pad,L.w*0.4);
   const tw=vert?L.w-2*pad:L.w-qs-3*pad, th=vert?L.h-qs-3*pad:L.h-2*pad;
-  const fs=Math.max(2.2,Math.min(5,th/9.2,tw/13));
+  const fs=Math.max(2.2,Math.min(5,th/9.4,tw/14));
   return `<div class="q" style="width:${qs}mm;height:${qs}mm;flex:none">${q.createSvgTag({cellSize:4,margin:0,scalable:true})}</div>
     <div class="t" style="font-size:${fs}mm">
       <div class="b" style="font-size:1.1em">${esc(o.customer)}${o.no?' · #'+esc(o.no):''}</div>
       <div class="b" style="font-size:1.2em">${p?'Desen '+esc(p):''}</div>
       <div class="b"><span class="sw" style="background:${c.hex}"></span>${esc(c.name)}</div>
       <div class="mk">${f1(r.m)} m · ${f1(r.kg)} kg</div>
-      <div class="b">Top ${r.n}${c.qty?' / '+c.qty:''}</div>
+      <div class="b">Top ${r.n}${c.qty?' / '+c.qty:''}${r.pos?` · <span style="border:.4mm solid #000;border-radius:1mm;padding:0 1.2mm;font-size:1.3em">P${r.parti} · <span style="font-size:1.2em">${r.pos}</span>/${r.size}</span>`:''}</div>
       <div class="sn" style="font-size:1.15em">No ${r.id}</div>
       <div style="font-size:.85em">${fmtD(r.date)}</div>
     </div>`;
@@ -510,8 +564,8 @@ function printRolls(list){
   setTimeout(()=>window.print(),150);
 }
 function testLabel(){
-  const o=orderById(uSel.o)||act()[0], c=o&&(colorOf(o,uSel.c)||o.colors[0]);
-  const r={id:'000000',orderId:o?o.id:'',colorId:c?c.id:'',n:1,m:123.45,kg:32.1,date:today(),ts:Date.now()};
+  const o=orderById(PD.o)||act()[0], c=o&&((PD.rows[0]&&colorOf(o,PD.rows[0].cid))||o.colors[0]);
+  const r={id:'000000',orderId:o?o.id:'',colorId:c?c.id:'',n:1,m:123.45,kg:32.1,parti:0,pos:1,size:10,date:today(),ts:Date.now()};
   if(!o){ S.orders.push({id:'__t',customer:'Deneme Müşteri',no:'001',colors:[{id:'__c',name:'Özbek bordo',hex:'#5e1a1d',qty:20,prod:'4021'}]}); r.orderId='__t'; r.colorId='__c'; printRolls([r]); S.orders=S.orders.filter(x=>x.id!=='__t'); return; }
   printRolls([r]);
 }
@@ -631,7 +685,7 @@ function saveOrder(){
   const o={...(old||{id:uid(),ts:Date.now()}),customer,no,date,product:ps.map(p=>p.name).join(', '),
     colors:ps.flatMap(p=>p.colors.map(c=>({id:c.id,name:c.name,hex:c.hex,qty:c.qty,prod:p.name})))};
   DB.write([['put','orders',o]]); closeSheet('orderSheet'); toast(old?'Sipariş güncellendi ✓':'Sipariş eklendi ✓');
-  if(!old){ uSel={o:o.id,d:null,c:''}; }
+  if(!old&&!PD.rows.some(r=>r.m||r.kg)){ PD={o:o.id,rows:[]}; saveDraft(); renderUretim(); }
 }
 function closeSheet(id){ $(id).classList.remove('open'); }
 
@@ -694,11 +748,10 @@ function renderHist(){
   const live=new Set(l.map(o=>o.id)), st=$('hState').value;
   const list=S.rolls.filter(r=>live.has(r.orderId)&&(!ho.value||r.orderId===ho.value)&&(!st||(st==='S')===!!r.loadTs)).sort((a,b)=>b.date.localeCompare(a.date)||b.ts-a.ts);
   if(!list.length){ $('histList').innerHTML=`<div class="card empty">Henüz top yok</div>`; return; }
-  let html='',day=null;
-  list.forEach(r=>{ if(r.date!==day){ if(day) html+='</div>'; day=r.date;
-      const dl=list.filter(x=>x.date===day); html+=`<div class="dayh">${fmtD(day)} <span class="small" style="font-weight:600">· ${dl.length} top · ${f1(dl.reduce((a,x)=>a+x.m,0))} m · ${f1(dl.reduce((a,x)=>a+x.kg,0))} kg</span></div><div class="card">`; }
-    html+=rollRow(r); });
-  $('histList').innerHTML=html+'</div>';
+  const days=[...new Set(list.map(r=>r.date))];
+  $('histList').innerHTML=days.map(day=>{ const dl=list.filter(x=>x.date===day);
+    return `<div class="dayh">${fmtD(day)} <span class="small" style="font-weight:600">· ${dl.length} top · ${f1(dl.reduce((a,x)=>a+x.m,0))} m · ${f1(dl.reduce((a,x)=>a+x.kg,0))} kg</span></div>
+      <div class="card">${partiGroups(dl).map(rs=>partiBlock(rs,!ho.value)).join('')}</div>`; }).join('');
 }
 $('hOrder').onchange=$('hState').onchange=renderHist;
 
