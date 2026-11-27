@@ -83,6 +83,25 @@ details.pblk summary small{display:block;color:var(--mute);font-size:12.5px}
 details.pblk summary::before{content:'▸';color:var(--mute);font-size:14px;transition:transform .15s}
 details.pblk[open] summary::before{transform:rotate(90deg)}
 details.pblk .roll{padding-left:6px}
+/* Desen fotoğrafı + sipariş tablosu */
+.thumb{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;object-fit:cover;background:#eef0f0;border:1px solid var(--line);font-size:18px;vertical-align:middle;cursor:pointer}
+.thumb.none{cursor:default;color:var(--mute)}
+.pfs{display:flex;gap:8px;align-items:center}.pfs select{flex:1;min-width:0}
+.phl{display:flex;align-items:center;gap:8px;color:var(--brand)!important;font-weight:800!important;font-size:14px!important}
+.mx-wrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:12px;background:#fff;-webkit-overflow-scrolling:touch}
+.mx{border-collapse:separate;border-spacing:0;font-size:14px;min-width:100%}
+.mx th,.mx td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px;text-align:center;background:#fff}
+.mx thead th{background:#eef3f3;font-size:12.5px;font-weight:700;color:var(--brand);min-width:64px;vertical-align:top;position:relative}
+.mx thead th div{margin-top:3px;line-height:1.15;max-width:80px;margin-left:auto;margin-right:auto}
+.mx .st{position:sticky;left:0;z-index:1;text-align:left;min-width:150px;background:#f8faf9}
+.mx thead .st{z-index:2;background:#e4eded}
+.mx td input{width:58px;padding:8px 4px;text-align:center;font-size:16px;font-weight:800;border-radius:8px}
+.mx .dz{display:flex;align-items:center;gap:6px}
+.mx .dno{width:90px;padding:8px;font-size:15px;font-weight:800}
+.mx .imgpick{position:relative;display:inline-flex}.mx .imgpick input{position:absolute;inset:0;opacity:0;width:100%}
+.mx .rt{font-weight:800;color:var(--brand);min-width:44px}
+.mx tfoot td{background:#eef3f3;font-weight:800;color:var(--brand)}
+.mx .mxx{border:none;background:none;color:var(--bad);font-size:15px;padding:2px 4px;margin-top:2px}
 /* Sipariş kartları */
 .ocard{background:var(--card);border-radius:18px;overflow:hidden;margin-bottom:22px;border:1.5px solid #c9d6d6;box-shadow:0 3px 10px rgba(15,59,64,.08)}
 .ocard.delpend{border:2px dashed var(--bad)}
@@ -248,6 +267,7 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
     <h2>Hesap</h2>
     <div class="card">
       <p class="small" style="margin:0" id="acctLine">Yerel mod (bulut bağlı değil)</p>
+      <p class="small" style="margin:8px 0 0" id="stInfo"></p>
       <button class="btn sm" id="installBtn" style="display:none">📲 Uygulamayı telefona yükle</button>
       <p class="small" id="installHint" style="display:none;margin:10px 2px 0">📲 Uygulama olarak yüklemek için: Chrome menüsü (⋮) → <b>Uygulamayı yükle</b> / <b>Ana ekrana ekle</b>.</p>
       <button class="btn sec sm" id="logoutBtn" style="display:none">Çıkış yap</button>
@@ -268,8 +288,10 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
     </div>
     <h2>Bu yüklemede okutulanlar (<span id="sN">0</span>)</h2>
     <div class="card" id="sList"></div>
-    <button class="btn" onclick="finishLoad()">✅ Yüklemeyi bitir (sevk et)</button>
+    <button class="btn" onclick="finishLoad()">✅ Yüklemeyi bitir · Sevkiyat oluştur</button>
     <button class="btn sec sm" onclick="clearSession()">Okutmaları temizle</button>
+    <h2>Sevkiyatlar (çeki listeleri)</h2>
+    <div class="card" id="shipList"></div>
   </section>
 
   <!-- GEÇMİŞ -->
@@ -310,10 +332,11 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
       <div><label class="f">Sipariş no</label><input id="oNo" autocomplete="off"></div>
       <div><label class="f">Sipariş tarihi</label><input id="oDate" type="date"></div>
     </div>
-    <label class="f">Desenler, renkler ve top adedi</label>
+    <label class="f">Sipariş tablosu: sütunlar = renkler, satırlar = desenler, kutular = top adedi</label>
     <datalist id="prodList"></datalist>
-    <div id="oProds"></div>
-    <button class="btn sec sm" style="margin-top:0" onclick="addProd()">＋ Desen ekle</button>
+    <div class="mx-wrap" id="oMatrix"></div>
+    <p class="small" id="oMxHint" style="margin:8px 2px 0">Önce “＋ Renk” ile renk sütunlarını ekleyin. 📷 ile desenin fotoğrafını ekleyin (bir kez eklenir, tüm siparişlerde görünür; sipariş kalıcı silinince kullanılmayan fotoğraflar da silinir).</p>
+    <div class="btns"><button class="btn sec sm" onclick="openPalette()">＋ Renk</button><button class="btn sec sm" onclick="mxAddRow()">＋ Desen</button></div>
     <button class="btn" onclick="saveOrder()">Kaydet</button>
     <button class="btn sec" onclick="closeSheet('orderSheet')">Vazgeç</button>
   </div>
@@ -331,6 +354,30 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
   </div>
 </div>
 
+<!-- Sevkiyat -->
+<div class="sheet" id="shipSheet" onclick="if(event.target===this)closeSheet('shipSheet')">
+  <div class="box">
+    <div id="shForm">
+      <h3>🚚 Sevkiyat oluştur</h3>
+      <div class="sel-sum" id="shSum"></div>
+      <label class="f">Araç plakası (isteğe bağlı)</label>
+      <input id="shPlate" autocomplete="off" placeholder="34 ABC 123">
+      <label class="f">Not (isteğe bağlı)</label>
+      <input id="shNote" autocomplete="off">
+      <button class="btn" onclick="saveShip()">✅ Sevkiyatı kaydet</button>
+      <button class="btn sec" onclick="closeSheet('shipSheet')">Vazgeç</button>
+    </div>
+    <div id="shDone" style="display:none">
+      <h3>Çeki listesi hazır</h3>
+      <div class="sel-sum" id="shDoneInfo"></div>
+      <button class="btn" id="shPdf">📄 PDF olarak paylaş (WhatsApp)</button>
+      <button class="btn sec" id="shXls">📊 Excel (.xlsx)</button>
+      <p class="small" style="margin:10px 2px 0">PDF doğrudan WhatsApp’a paylaşılabilir. Excel dosyası telefona iner; WhatsApp’ta 📎 → Belge ile gönderin.</p>
+      <button class="btn sec sm" onclick="closeSheet('shipSheet')">Kapat</button>
+    </div>
+  </div>
+</div>
+
 <div class="login" id="loginBox" style="display:none">
   <div class="box">
     <h2>Üretim Takip</h2>
@@ -344,6 +391,9 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
 <div class="sheet dlg" id="dlg"><div class="box">
   <p id="dlgMsg"></p>
   <div class="btns"><button class="btn sec" id="dlgNo">Vazgeç</button><button class="btn" id="dlgYes">Evet</button></div>
+</div></div>
+<div class="sheet dlg" id="imgView" onclick="this.classList.remove('open')"><div class="box" style="padding:10px;max-width:640px">
+  <img id="imgBig" alt="" style="width:100%;border-radius:12px;display:block;background:#eee"><p id="imgCap" style="text-align:center;font-weight:800;margin:10px 0 4px;color:var(--brand)"></p>
 </div></div>
 <div id="toast"></div>
 <div id="printArea"></div>
@@ -367,14 +417,19 @@ const PALETTE = [
    Top:     {id(6 haneli seri), orderId, colorId, n(top no), m(metre), kg, date, ts, loadTs?} */
 const LKEY='uretim-takip-v2';
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const EMPTY=()=>({orders:[],rolls:[],meta:{colors:[]}});
+const EMPTY=()=>({orders:[],rolls:[],ships:[],desen:[],meta:{colors:[]}});
 let S=(()=>{try{const d=JSON.parse(LS.get(LKEY));if(d&&d.orders)return d;}catch(e){}return EMPTY();})();
-function norm(){ S.orders=S.orders||[]; S.rolls=S.rolls||[]; S.meta=S.meta||{colors:[]}; }
+function norm(){ S.orders=S.orders||[]; S.rolls=S.rolls||[]; S.ships=S.ships||[]; S.desen=S.desen||[]; S.meta=S.meta||{colors:[]}; }
 norm();
-function saveLocal(){ LS.set(LKEY,JSON.stringify(S)); }
+// Küçük resimler localStorage'a yazılmaz (yer sınırı); Firestore'un kendi önbelleğinde durur.
+function saveLocal(){ const cloud=window.Cloud&&window.Cloud.on; LS.set(LKEY,JSON.stringify(cloud?{...S,desen:S.desen.map(({thumb,...d})=>d)}:S)); }
+/* Büyük desen fotoğrafları ayrı koleksiyonda (u_resim) durur, sadece açılınca okunur. */
+const IMG={};
+const imgLS=id=>'uretim-resim-'+id;
 function applyOps(ops){
   ops.forEach(([op,coll,v])=>{
     if(coll==='meta'){ if(op==='put') S.meta=v; return; }
+    if(coll==='resim'){ const id=op==='put'?v.id:v; if(op==='put'){ IMG[id]=v.data; if(!(window.Cloud&&window.Cloud.on)) LS.set(imgLS(id),v.data); } else { delete IMG[id]; try{ localStorage.removeItem(imgLS(id)); }catch(e){} } return; }
     const arr=S[coll], id=op==='put'?v.id:v, i=arr.findIndex(x=>x.id===id);
     if(op==='put'){ if(i>=0) arr[i]=v; else arr.push(v); } else if(i>=0) arr.splice(i,1);
   });
@@ -451,7 +506,7 @@ function renderUretim(){
   $('uPartiNo').textContent=nextParti();
   $('uRows').innerHTML=PD.rows.map((r,i)=>`<div class="prow">
       <div class="pno">${i+1}</div>
-      <div class="pf"><select data-i="${i}" onchange="rowSet(${i},'cid',this.value)">${comboOpts(o,r.cid)}</select>
+      <div class="pf"><div class="pfs">${thumbHTML(colorOf(o,r.cid)?prodOf(o,colorOf(o,r.cid)):'',44)}<select data-i="${i}" onchange="rowSet(${i},'cid',this.value)">${comboOpts(o,r.cid)}</select></div>
         <div class="row2"><div class="unit"><input inputmode="decimal" autocomplete="off" placeholder="Metre" value="${esc(r.m)}" data-m="${i}" oninput="rowSet(${i},'m',this.value)"><span>m</span></div>
         <div class="unit"><input inputmode="decimal" autocomplete="off" placeholder="Kg" value="${esc(r.kg)}" data-k="${i}" oninput="rowSet(${i},'kg',this.value)"><span>kg</span></div></div></div>
       <button class="ib del" onclick="rowDel(${i})" aria-label="satırı sil">✕</button></div>`).join('');
@@ -467,7 +522,7 @@ function renderPTot(){
 $('uOrder').onchange=async e=>{ const v=e.target.value;
   if(PD.rows.some(r=>r.m||r.kg)&&!await ask('Bu partideki girilmiş satırlar silinsin ve sipariş değiştirilsin mi?')){ e.target.value=PD.o; return; }
   PD={o:v,rows:[]}; saveDraft(); renderUretim(); };
-function rowSet(i,k,v){ PD.rows[i][k]=v; if(k==='cid') LS.set(LASTC,v); saveDraft(); renderPTot(); }
+function rowSet(i,k,v){ PD.rows[i][k]=v; saveDraft(); if(k==='cid'){ LS.set(LASTC,v); renderUretim(); } else renderPTot(); }
 function rowDel(i){ PD.rows.splice(i,1); saveDraft(); renderUretim(); }
 function rowAdd(focus=true){
   if(PD.rows.length>=MAXP) return toast('Bir partide en fazla '+MAXP+' top');
@@ -529,7 +584,7 @@ function reprint(id){ const r=S.rolls.find(x=>x.id===id); if(r) printRolls([r]);
 async function delRoll(id){
   const r=S.rolls.find(x=>x.id===id); if(!r) return; const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?'};
   if(r.loadTs){ if(!await ask(`Bu top sevk edilmiş (${fmtTs(r.loadTs)}).\nÖnce sevkiyatı geri alınsın mı? (Top depoya döner.)`)) return;
-    const n={...r}; delete n.loadTs; delete n.loadBatch; DB.write([['put','rolls',n]]); return toast('Sevkiyat geri alındı'); }
+    unshipRoll(r); return toast('Sevk geri alındı (sevkiyattan çıkarıldı)'); }
   if(!await ask(`Bu top silinsin mi?\n${o?oLabel(o):''} · ${o?cLabel(o,c):c.name}\nTop ${r.n} · ${f1(r.m)} m · ${f1(r.kg)} kg · No ${r.id}\n\n(Yapıştırılmış etiket artık tanınmaz.)`)) return;
   DB.write([['del','rolls',id]]); toast('Silindi');
 }
@@ -603,7 +658,7 @@ function orderCard(o,where){
     ${!o.deleteAt?`<p class="small" style="margin:10px 2px 0">Arşive alındı: ${fmtTs(o.archived)}</p><button class="btn sm" onclick="archOrder('${o.id}',false)">↩ Arşivden geri al</button><button class="btn danger sm" onclick="delArchived('${o.id}')">🗑 Kalıcı olarak sil</button>`
       :`<div class="delinfo">⏳ Kalıcı silinme: ${fmtTs(o.deleteAt)} (kalan ${remain(o.deleteAt)})</div><button class="btn sm" onclick="undoDel('${o.id}')">↩ Silmeyi geri al</button>`}</div></div>`;
   return `<div class="ocard${closed.has(o.id)?' closed':''}">${oHead(o,T,true)}<div class="obody">
-    ${groupsOf(o).map(([p,cs])=>{ const G=calcSet(o,cs); return (p?`<div class="ph">🧵 ${esc(dLabel(p))}<span>${G.r} / ${G.q} top · ${f1(G.m)} m</span></div>`:'')+cs.map(c=>colorRow(o,c)).join(''); }).join('')}
+    ${groupsOf(o).map(([p,cs])=>{ const G=calcSet(o,cs); return (p?`<div class="ph"><span class="phl">${thumbHTML(p,34)}${esc(dLabel(p))}</span><span>${G.r} / ${G.q} top · ${f1(G.m)} m</span></div>`:'')+cs.map(c=>colorRow(o,c)).join(''); }).join('')}
     ${allShip?`<p style="margin:10px 0 0"><span class="tag S">✓ Tamamı sevk edildi</span></p>`:''}
     <div class="btns"><button class="btn sec sm" onclick="openOrder('${o.id}')">✎ Düzenle</button><button class="btn sec sm" onclick="shareOrders(['${o.id}'])">📤 Rapor</button><button class="btn sec sm" onclick="archOrder('${o.id}',true)">🗄 Arşivle</button></div>
   </div></div>`;
@@ -627,67 +682,125 @@ async function delArchived(id){ const o=orderById(id); if(!o) return;
 function undoDel(id){ const o=orderById(id); if(!o) return; const n={...o}; delete n.deleteAt; DB.write([['put','orders',n]]); toast('Silme iptal edildi ✓'); }
 function purgeDue(){ if(window.Cloud&&window.Cloud.on&&!window.Cloud.ready) return;
   const now=Date.now(), due=S.orders.filter(o=>o.archived&&o.deleteAt&&o.deleteAt<=now).map(o=>o.id); if(!due.length) return;
-  DB.write(due.map(id=>['del','orders',id]).concat(S.rolls.filter(r=>due.includes(r.orderId)).map(r=>['del','rolls',r.id]))); }
+  DB.write(due.map(id=>['del','orders',id]).concat(S.rolls.filter(r=>due.includes(r.orderId)).map(r=>['del','rolls',r.id]),S.ships.filter(x=>x.orderIds.some(id=>due.includes(id))).map(x=>['del','ships',x.id]),
+    orphanDesenOps(S.orders.filter(o=>!due.includes(o.id))))); }
 setInterval(()=>{ purgeDue(); if(page==='orders') renderOrders(); },60000);
 
-/* ---- Sipariş formu ---- */
-let editOrderId=null, draft=[], palTarget=0;
+/* ---- Desen kütüphanesi (her desen no için tek fotoğraf) ----
+   u_desen/{id} -> {id, no, url, thumb, ts}. Fotoğraflar Firebase Storage'da: users/{uid}/desen/{id}/... */
+const dKey=no=>'d_'+String(no||'').trim().toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}-]+/gu,'_');
+const desenOf=no=>no?S.desen.find(d=>d.id===dKey(no)):null;
+function thumbHTML(no,size=40,click=true){
+  const d=desenOf(no);
+  if(!d||!(d.thumb||d.url)) return `<span class="thumb none" style="width:${size}px;height:${size}px">🧵</span>`;
+  return `<img class="thumb" src="${esc(d.thumb||d.url)}" alt="""" loading="lazy" style="width:${size}px;height:${size}px"${click?` onclick="event.stopPropagation();viewImg('${esc(d.id)}')"`:''}>`;
+}
+function shrink(file,max,q){ return new Promise(async(res,rej)=>{ try{
+  const bmp=await createImageBitmap(file,{imageOrientation:'from-image'}); const k=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const cv=document.createElement('canvas'); cv.width=Math.round(bmp.width*k); cv.height=Math.round(bmp.height*k);
+  const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cv.width,cv.height); x.drawImage(bmp,0,0,cv.width,cv.height);
+  cv.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',q); }catch(e){ rej(e); } }); }
+const blobToDataURL=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
+let imgBusy=0;
+async function setDesenImage(no,file){
+  no=String(no||'').trim(); if(!no) return toast('Önce desen no yazın');
+  if(!file) return; imgBusy++; toast('Fotoğraf hazırlanıyor…');
+  try{
+    const id=dKey(no), ts=Date.now();
+    let full=await blobToDataURL(await shrink(file,1200,0.8));
+    if(full.length>900000) full=await blobToDataURL(await shrink(file,1000,0.7));   // Firestore belge sınırı 1 MB
+    const thumb=await blobToDataURL(await shrink(file,240,0.72));
+    DB.write([['put','resim',{id,data:full}],['put','desen',{id,no,thumb,fs:full.length,ts}]]);
+    toast('Desen '+no+' fotoğrafı kaydedildi ✓');
+  }catch(e){ console.error(e); note('Fotoğraf eklenemedi: '+(e.message||e)); }
+  finally{ imgBusy--; if($('orderSheet').classList.contains('open')) renderMatrix(); }
+}
+async function viewImg(id){
+  const d=S.desen.find(x=>x.id===id); if(!d) return;
+  $('imgCap').textContent='Desen '+d.no; $('imgBig').src=d.thumb||''; $('imgView').classList.add('open');
+  let full=IMG[id]||LS.get(imgLS(id));
+  if(!full&&window.Cloud&&window.Cloud.getImg){ $('imgCap').textContent='Desen '+d.no+' · yükleniyor…'; try{ full=await window.Cloud.getImg(id); if(full) IMG[id]=full; }catch(e){} $('imgCap').textContent='Desen '+d.no; }
+  if(full&&$('imgView').classList.contains('open')) $('imgBig').src=full;
+}
+/* Kullanılmayan desen fotoğrafları: hiçbir siparişte geçmeyen desenler (kalıcı silmeden sonra) */
+function orphanDesenOps(ordersLeft){ const used=new Set(ordersLeft.flatMap(o=>o.colors.map(c=>dKey(prodOf(o,c))))); 
+  return S.desen.filter(d=>!used.has(d.id)).flatMap(d=>[['del','desen',d.id],['del','resim',d.id]]); }
+function storageInfo(){ const b=S.desen.reduce((a,d)=>a+(d.fs||0)+((d.thumb||'').length),0)+JSON.stringify({o:S.orders,r:S.rolls,s:S.ships}).length;
+  return {n:S.desen.length,mb:b/1048576}; }
+/* ---- Sipariş formu: tablo (sütunlar = renkler, satırlar = desenler, hücreler = top adedi) ---- */
+let editOrderId=null, M={colors:[],rows:[]};
 function openOrder(id){
   editOrderId=id||null; const o=id?orderById(id):null;
   $('osTitle').textContent=o?'Siparişi düzenle':'Yeni sipariş';
   $('oCustomer').value=o?o.customer:''; $('oNo').value=o?o.no||'':''; $('oDate').value=o?o.date:today();
-  draft=o?groupsOf(o).map(([p,cs])=>({name:p,colors:cs.map(c=>({...c}))})):[{name:'',colors:[]}];
+  M={colors:[],rows:[]};
+  if(o){ o.colors.forEach(c=>{ if(!M.colors.find(x=>x.name===c.name)) M.colors.push({name:c.name,hex:c.hex}); });
+    groupsOf(o).forEach(([p,cs])=>{ const r={no:p,q:{},ids:{}}; cs.forEach(c=>{ r.q[c.name]=c.qty; r.ids[c.name]=c.id; }); M.rows.push(r); }); }
+  if(!M.rows.length) M.rows.push({no:'',q:{},ids:{}});
   const cs=[...new Set(S.orders.map(x=>x.customer))].sort((a,b)=>a.localeCompare(b,'tr'));
-  const ps=[...new Set(S.orders.flatMap(x=>groupsOf(x).map(g=>g[0])).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));
+  const ps=[...new Set(S.orders.flatMap(x=>groupsOf(x).map(g=>g[0])).concat(S.desen.map(d=>d.no)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr',{numeric:true}));
   $('custList').innerHTML=cs.map(c=>`<option value="${esc(c)}">`).join('');
   $('prodList').innerHTML=ps.map(c=>`<option value="${esc(c)}">`).join('');
-  renderDraft(); $('orderSheet').classList.add('open');
+  renderMatrix(); $('orderSheet').classList.add('open');
 }
-const hasRolls=(oid,cid)=>oid&&S.rolls.some(r=>r.orderId===oid&&r.colorId===cid);
-function renderDraft(){
-  $('oProds').innerHTML=draft.map((p,i)=>`<div class="card pcard">
-    <div class="pn"><input list="prodList" autocomplete="off" placeholder="Desen no (örn. 4021)" value="${esc(p.name)}" onchange="draft[${i}].name=this.value.trim()">
-      <button onclick="rmProd(${i})" aria-label="deseni kaldır">🗑</button></div>
-    ${p.colors.length?p.colors.map((c,j)=>`<div class="oc"><span class="dot" style="background:${c.hex};width:22px;height:22px"></span><span class="nm">${esc(c.name)}</span>
-      <input type="number" inputmode="numeric" min="1" placeholder="top" value="${c.qty||''}" onchange="draft[${i}].colors[${j}].qty=parseInt(this.value)||0">
-      <button onclick="rmDraft(${i},${j})" aria-label="kaldır">✕</button></div>`).join(''):`<p class="small" style="text-align:center;margin:10px 0 0">Henüz renk eklenmedi</p>`}
-    <button class="btn sec sm" onclick="openPalette(${i})">＋ Renk ekle</button></div>`).join('');
+const hasRolls=(oid,cid)=>oid&&cid&&S.rolls.some(r=>r.orderId===oid&&r.colorId===cid);
+function renderMatrix(){
+  if(renderMatrix.busy){ renderMatrix.again=true; return; }
+  renderMatrix.busy=true; try{ drawMatrix(); } finally{ renderMatrix.busy=false; }
+  if(renderMatrix.again){ renderMatrix.again=false; renderMatrix(); }
 }
-function addProd(){ draft.push({name:'',colors:[]}); renderDraft(); const ins=$('oProds').querySelectorAll('.pn input'); ins[ins.length-1].focus(); }
-function rmProd(i){ if(draft[i].colors.some(c=>hasRolls(editOrderId,c.id))) return note('Bu desenin topları var, kaldırılamaz. Önce Geçmiş sayfasından toplarını silin.');
-  draft.splice(i,1); if(!draft.length) draft.push({name:'',colors:[]}); renderDraft(); }
-function rmDraft(i,j){ if(hasRolls(editOrderId,draft[i].colors[j].id)) return note('Bu rengin topları var, kaldırılamaz. Önce Geçmiş sayfasından toplarını silin.'); draft[i].colors.splice(j,1); renderDraft(); }
-function openPalette(i){
-  if(i!==undefined) palTarget=i; const used=new Set(draft[palTarget].colors.map(c=>c.name));
+function drawMatrix(){
+  const C=M.colors;
+  const colTot=C.map(c=>M.rows.reduce((a,r)=>a+(parseInt(r.q[c.name])||0),0)), all=colTot.reduce((a,b)=>a+b,0);
+  $('oMatrix').innerHTML=`<table class="mx"><thead><tr><th class="st">Desen</th>${C.map((c,j)=>`<th><span class="dot" style="background:${c.hex}"></span><div>${esc(c.name)}</div><button class="mxx" onclick="mxDelCol(${j})" aria-label="rengi kaldır">✕</button></th>`).join('')}<th>Top</th><th></th></tr></thead>
+    <tbody>${M.rows.map((r,i)=>{ const rt=C.reduce((a,c)=>a+(parseInt(r.q[c.name])||0),0);
+      return `<tr><td class="st"><div class="dz"><label class="imgpick" title="Fotoğraf">${r.no&&desenOf(r.no)?thumbHTML(r.no,44,false):'<span class="thumb none" style="width:44px;height:44px">📷</span>'}<input type="file" accept="image/*" onchange="mxImg(${i},this)"></label>
+        <input class="dno" list="prodList" autocomplete="off" placeholder="Desen no" value="${esc(r.no)}" onchange="mxNo(${i},this.value)"></div></td>
+        ${C.map(c=>`<td><input type="number" inputmode="numeric" min="0" value="${r.q[c.name]||''}" onchange="mxSet(${i},'${esc(c.name).replace(/'/g,"\\'")}',this.value)"></td>`).join('')}
+        <td class="rt">${rt||''}</td><td><button class="mxx" onclick="mxDelRow(${i})" aria-label="deseni kaldır">✕</button></td></tr>`; }).join('')}</tbody>
+    ${C.length?`<tfoot><tr><td class="st">Toplam</td>${colTot.map(t=>`<td>${t||''}</td>`).join('')}<td class="rt">${all}</td><td></td></tr></tfoot>`:''}</table>`;
+  $('oMxHint').style.display=C.length?'none':'block';
+}
+function mxNo(i,v){ v=v.trim(); if(v&&M.rows.some((r,k)=>k!==i&&r.no.toLocaleLowerCase('tr')===v.toLocaleLowerCase('tr'))){ toast('Bu desen zaten var'); renderMatrix(); return; } M.rows[i].no=v; renderMatrix(); }
+function mxSet(i,name,v){ const n=parseInt(v)||0; if(n) M.rows[i].q[name]=n; else delete M.rows[i].q[name]; renderMatrix(); }
+function mxImg(i,inp){ const f=inp.files[0]; inp.value=''; if(!M.rows[i].no) return toast('Önce desen no yazın'); setDesenImage(M.rows[i].no,f); }
+function mxAddRow(){ M.rows.push({no:'',q:{},ids:{}}); renderMatrix(); const ins=$('oMatrix').querySelectorAll('.dno'); ins[ins.length-1].focus(); }
+function mxDelRow(i){ const r=M.rows[i]; if(Object.values(r.ids).some(id=>hasRolls(editOrderId,id))) return note('Bu desenin topları var, kaldırılamaz.');
+  M.rows.splice(i,1); if(!M.rows.length) M.rows.push({no:'',q:{},ids:{}}); renderMatrix(); }
+function mxDelCol(j){ const c=M.colors[j]; if(M.rows.some(r=>hasRolls(editOrderId,r.ids[c.name]))) return note(c.name+' renginin topları var, kaldırılamaz.');
+  M.colors.splice(j,1); M.rows.forEach(r=>{ delete r.q[c.name]; }); renderMatrix(); }
+function openPalette(){
+  const used=new Set(M.colors.map(c=>c.name));
   $('palGrid').innerHTML=allColors().map((c,k)=>`<button class="${used.has(c.name)?'used':''}" onclick="pickColor(${k})"><span class="dot" style="background:${c.hex}"></span>${esc(c.name)}</button>`).join('');
   $('ncName').value=''; $('palSheet').classList.add('open');
 }
-function pickColor(k){ const c=allColors()[k], cs=draft[palTarget].colors; if(cs.some(d=>d.name===c.name)) return toast('Bu renk bu desende zaten ekli');
-  cs.push({id:uid(),name:c.name,hex:c.hex,qty:0}); closeSheet('palSheet'); renderDraft();
-  setTimeout(()=>{ const ins=$('oProds').querySelectorAll('.pcard')[palTarget].querySelectorAll('.oc input'); ins[ins.length-1]&&ins[ins.length-1].focus(); },50); }
+function pickColor(k){ const c=allColors()[k]; if(M.colors.some(d=>d.name===c.name)) return toast('Bu renk zaten ekli');
+  M.colors.push({name:c.name,hex:c.hex}); closeSheet('palSheet'); renderMatrix(); }
 function addCustomColor(){
   const name=$('ncName').value.trim(), hex=$('ncHex').value; if(!name) return toast('Renk adı yazın');
   if(allColors().some(c=>c.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))) return toast('Bu isimde renk zaten var');
   const meta={...(S.meta||{}),colors:((S.meta&&S.meta.colors)||[]).concat([{name,hex}])};
-  DB.write([['put','meta',meta]]); openPalette(palTarget); toast('Renk listeye eklendi ✓');
+  DB.write([['put','meta',meta]]); openPalette(); toast('Renk listeye eklendi ✓');
 }
 function saveOrder(){
   document.activeElement&&document.activeElement.blur&&document.activeElement.blur();
   const customer=$('oCustomer').value.trim(), no=$('oNo').value.trim(), date=$('oDate').value||today();
   if(!customer) return toast('Müşteri adı gerekli');
-  const ps=draft.filter(p=>p.name||p.colors.length);
-  if(!ps.length) return toast('En az bir desen ekleyin');
-  if(ps.some(p=>!p.name)) return toast('Her desen için desen no yazın');
-  if(new Set(ps.map(p=>p.name.toLocaleLowerCase('tr'))).size<ps.length) return toast('Aynı desen iki kez yazılmış');
-  if(ps.some(p=>!p.colors.length)) return toast('Her desene en az bir renk ekleyin');
-  if(ps.some(p=>p.colors.some(c=>!c.qty||c.qty<1))) return toast('Her renk için top adedi girin');
-  const old=editOrderId?orderById(editOrderId):null;
-  const o={...(old||{id:uid(),ts:Date.now()}),customer,no,date,product:ps.map(p=>p.name).join(', '),
-    colors:ps.flatMap(p=>p.colors.map(c=>({id:c.id,name:c.name,hex:c.hex,qty:c.qty,prod:p.name})))};
+  if(!M.colors.length) return toast('En az bir renk (sütun) ekleyin');
+  const rows=M.rows.filter(r=>r.no||Object.keys(r.q).length);
+  if(rows.some(r=>!r.no)) return toast('Adet girilen her satıra desen no yazın');
+  const used=rows.filter(r=>M.colors.some(c=>r.q[c.name]>0));
+  if(!used.length) return toast('Tabloya top adedi girin');
+  const old=editOrderId?orderById(editOrderId):null, colors=[];
+  used.forEach(r=>M.colors.forEach(c=>{ const q=r.q[c.name]; if(q>0) colors.push({id:r.ids[c.name]||uid(),name:c.name,hex:c.hex,qty:q,prod:r.no}); }));
+  if(old){ const keep=new Set(colors.map(c=>c.id)), lost=old.colors.filter(c=>!keep.has(c.id)&&hasRolls(old.id,c.id));
+    if(lost.length) return note('Bu satırların topları var, adet 0 yapılamaz:\n'+lost.map(c=>cLabel(old,c)).join('\n')); }
+  const o={...(old||{id:uid(),ts:Date.now()}),customer,no,date,product:used.map(r=>r.no).join(', '),colors};
   DB.write([['put','orders',o]]); closeSheet('orderSheet'); toast(old?'Sipariş güncellendi ✓':'Sipariş eklendi ✓');
   if(!old&&!PD.rows.some(r=>r.m||r.kg)){ PD={o:o.id,rows:[]}; saveDraft(); renderUretim(); }
 }
 function closeSheet(id){ $(id).classList.remove('open'); }
+
 
 /* ================= YÜKLEME (okutma = sevk) ================= */
 let session=[], stream=null, detector=null, scanTimer=null, lastCode='', lastAt=0, actx=null;
@@ -722,13 +835,6 @@ function renderSession(){
 }
 function unscan(id){ session=session.filter(x=>x!==id); renderSession(); }
 async function clearSession(){ if(session.length&&!await ask('Bu yüklemedeki '+session.length+' okutma temizlensin mi?')) return; session=[]; $('sRes').className='sres'; renderSession(); }
-async function finishLoad(){
-  if(!session.length) return toast('Önce top okutun');
-  const rs=session.map(id=>S.rolls.find(x=>x.id===id)).filter(Boolean);
-  if(!await ask(`${rs.length} top sevk edildi olarak kaydedilsin mi?\n${f1(rs.reduce((a,r)=>a+r.m,0))} m · ${f1(rs.reduce((a,r)=>a+r.kg,0))} kg`)) return;
-  const ts=Date.now(), b=uid(); DB.write(rs.map(r=>['put','rolls',{...r,loadTs:ts,loadBatch:b}]));
-  note('✅ Sevkiyat kaydedildi: '+rs.length+' top.'); session=[]; $('sRes').className='sres'; stopCam(); renderSession();
-}
 $('sManual').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); handleCode(e.target.value); e.target.value=''; } });
 async function toggleCam(){ if(stream) return stopCam();
   if(!('BarcodeDetector' in window)) return note('Bu tarayıcı kamerayla barkod okumayı desteklemiyor. Android’de Chrome kullanın veya seri no’yu elle yazın.');
@@ -849,7 +955,7 @@ const BK='uretim-yedekler-v2', BKS='uretim-son-paylasim', BK_EVERY=2*3600*1000;
 let bkLater=false;
 function bkList(){ try{ return JSON.parse(LS.get(BK)||'[]'); }catch(e){ return []; } }
 function bkStore(l){ while(true){ try{ localStorage.setItem(BK,JSON.stringify(l)); return; }catch(e){ if(l.length<=1) return; l.shift(); } } }
-const snapshot=()=>({app:'uretim-takip',v:2,ts:Date.now(),orders:S.orders,rolls:S.rolls,meta:S.meta||{colors:[]}});
+const snapshot=()=>({app:'uretim-takip',v:2,ts:Date.now(),orders:S.orders,rolls:S.rolls,ships:S.ships,desen:S.desen.map(({thumb,...d})=>d),meta:S.meta||{colors:[]}});
 function prune(l){ l.sort((a,b)=>a.ts-b.ts); const keep=new Set(l.slice(-12).map(b=>b.ts)), day={}, now=Date.now();
   l.forEach(b=>{ if(now-b.ts<15*864e5) day[isoOf(new Date(b.ts))]=b.ts; }); Object.values(day).forEach(t=>keep.add(t)); return l.filter(b=>keep.has(b.ts)); }
 const hasData=()=>S.orders.length||S.rolls.length;
@@ -884,24 +990,230 @@ function renderBk(){
   if(!$('bkInfo')) return; const l=bkList(), last=l[l.length-1], sts=+LS.get(BKS+'-ts')||0;
   $('bkInfo').innerHTML=`🕑 Otomatik yedek: her 2 saatte bir, bu telefonda.<br>Son otomatik yedek: <b>${last?fmtTs(last.ts):'henüz yok'}</b><br>📤 Son WhatsApp gönderimi: <b>${sts?fmtTs(sts):'henüz yok'}</b>`;
   $('bkCount').textContent=l.length;
+  const si=storageInfo(); $('stInfo').innerHTML=`🖼 Desen fotoğrafı: <b>${si.n}</b> · Kullanılan alan: <b>${si.mb<1?Math.max(0.1,Math.round(si.mb*10)/10):Math.round(si.mb)} MB</b> / 1024 MB (ücretsiz)`;
   $('bkList').innerHTML=l.length?l.slice().reverse().map(b=>`<div class="bkr"><div><b>${fmtTs(b.ts)}</b><br><small>${bkCounts(b)}</small></div>
     <button onclick="shareBackup(bkList().find(x=>x.ts===${b.ts}))">📤</button><button onclick="restoreBk(bkList().find(x=>x.ts===${b.ts}))">Geri yükle</button></div>`).join(''):`<p class="small">Henüz yedek yok</p>`;
 }
 async function restoreBk(b){
   if(!b||!Array.isArray(b.orders)) return note('Bu dosya geçerli bir Üretim Takip yedeği değil.');
-  const rolls=Array.isArray(b.rolls)?b.rolls:[];
+  const rolls=Array.isArray(b.rolls)?b.rolls:[], ships=Array.isArray(b.ships)?b.ships:[], desen=Array.isArray(b.desen)?b.desen:[];
   if(!await ask(`Bu yedek geri yüklensin mi?\n\n${fmtTs(b.ts||Date.now())}\n${bkCounts(b)}\n\nŞu anki veriler bu yedekteki verilerle değiştirilecek. (Önce şu anki hâlin yedeği alınır.)`)) return;
   autoBackup(true);
-  const keepO=new Set(b.orders.map(o=>o.id)), keepR=new Set(rolls.map(r=>r.id));
-  DB.write([...S.orders.filter(o=>!keepO.has(o.id)).map(o=>['del','orders',o.id]),...S.rolls.filter(r=>!keepR.has(r.id)).map(r=>['del','rolls',r.id]),
+  const keepO=new Set(b.orders.map(o=>o.id)), keepR=new Set(rolls.map(r=>r.id)), keepS=new Set(ships.map(x=>x.id));
+  DB.write([...S.orders.filter(o=>!keepO.has(o.id)).map(o=>['del','orders',o.id]),...S.rolls.filter(r=>!keepR.has(r.id)).map(r=>['del','rolls',r.id]),...S.ships.filter(x=>!keepS.has(x.id)).map(x=>['del','ships',x.id]),...ships.map(x=>['put','ships',x]),...desen.filter(x=>x.thumb).map(x=>['put','desen',x]),
     ...b.orders.map(o=>['put','orders',o]),...rolls.map(r=>['put','rolls',r]),['put','meta',b.meta||{colors:[]}]]);
   toast('Yedek geri yüklendi ✓');
 }
 $('bkFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader();
   r.onload=()=>{ try{ restoreBk(JSON.parse(r.result)); }catch(err){ note('Dosya okunamadı. Doğru yedek dosyasını seçin.'); } }; r.readAsText(f); e.target.value=''; };
 
+/* ================= SEVKİYAT + ÇEKİ LİSTESİ (PDF / Excel) =================
+   Sevkiyat: users/{uid}/u_sevk/{id} -> {id, no, customer, orderIds, rollIds, plate, note, date, ts}
+   Sevkiyat no: SVK-0001… (u_meta.lastSevk, hiç tekrar kullanılmaz). */
+const svkNo=n=>'SVK-'+String(n).padStart(4,'0');
+function nextSevk(){ return Math.max(S.meta.lastSevk||0,S.ships.reduce((a,s)=>Math.max(a,s.no||0),0))+1; }
+const shipRolls=sh=>sh.rollIds.map(id=>S.rolls.find(r=>r.id===id)).filter(Boolean);
+function shipLines(sh){ // desen/renk sırasına göre sıralı satırlar
+  return shipRolls(sh).map(r=>({r,o:orderById(r.orderId),c:null})).map(x=>({...x,c:colorOf(x.o,x.r.colorId)||{name:'?',hex:'#ccc'}}))
+    .sort((a,b)=>String(a.o?a.o.no:'').localeCompare(String(b.o?b.o.no:''),'tr')||String(prodOf(a.o||{},a.c)).localeCompare(String(prodOf(b.o||{},b.c)),'tr',{numeric:true})||a.c.name.localeCompare(b.c.name,'tr')||a.r.n-b.r.n);
+}
+function shipGroups(lines){ const g=[]; lines.forEach(l=>{ const k=(l.o?l.o.id:'')+'|'+l.c.id; let x=g.find(y=>y.k===k); if(!x) g.push(x={k,o:l.o,c:l.c,lines:[]}); x.lines.push(l); }); return g; }
+const sumM=ls=>ls.reduce((a,l)=>a+(l.r.m||0),0), sumK=ls=>ls.reduce((a,l)=>a+(l.r.kg||0),0);
+const fileBase=sh=>('Ceki-Listesi-'+svkNo(sh.no)+'-'+sh.customer).replace(/[^\p{L}\p{N}]+/gu,'-');
+
+/* ---- Yükleme bitirme: sevkiyat oluştur ---- */
+async function finishLoad(){
+  if(!session.length) return toast('Önce top okutun');
+  const rs=session.map(id=>S.rolls.find(x=>x.id===id)).filter(Boolean);
+  const custs=[...new Set(rs.map(r=>{ const o=orderById(r.orderId); return o?o.customer:'?'; }))];
+  if(custs.length>1) return note('Bu yüklemede birden fazla müşterinin topu var:\n'+custs.join(', ')+'\n\nBir sevkiyat tek müşteri için olmalı. Fazla topları ✕ ile çıkarın.');
+  $('shSum').innerHTML=`<b>${esc(custs[0])}</b> · ${svkNo(nextSevk())}<br>${rs.length} top · ${f1(rs.reduce((a,r)=>a+r.m,0))} m · ${f1(rs.reduce((a,r)=>a+r.kg,0))} kg`;
+  $('shPlate').value=''; $('shNote').value='';
+  $('shForm').style.display='block'; $('shDone').style.display='none'; $('shipSheet').classList.add('open');
+}
+function saveShip(){
+  const rs=session.map(id=>S.rolls.find(x=>x.id===id)).filter(Boolean); if(!rs.length) return closeSheet('shipSheet');
+  const o0=orderById(rs[0].orderId), no=nextSevk(), ts=Date.now();
+  const sh={id:uid(),no,customer:o0?o0.customer:'?',orderIds:[...new Set(rs.map(r=>r.orderId))],rollIds:rs.map(r=>r.id),
+    plate:$('shPlate').value.trim().toLocaleUpperCase('tr'),note:$('shNote').value.trim(),date:today(),ts};
+  DB.write([['put','ships',sh],...rs.map(r=>['put','rolls',{...r,loadTs:ts,loadBatch:sh.id}]),['put','meta',{...S.meta,lastSevk:no}]]);
+  session=[]; $('sRes').className='sres'; stopCam(); renderSession();
+  showShipDone(sh.id);
+}
+function showShipDone(id){
+  const sh=S.ships.find(s=>s.id===id); if(!sh) return;
+  const ls=shipLines(sh);
+  $('shDoneInfo').innerHTML=`✅ <b>${svkNo(sh.no)}</b> kaydedildi<br>${esc(sh.customer)} · ${fmtD(sh.date)}<br>${ls.length} top · ${f1(sumM(ls))} m · ${f1(sumK(ls))} kg`;
+  $('shPdf').onclick=()=>sharePdf(sh.id); $('shXls').onclick=()=>shareXlsx(sh.id);
+  $('shForm').style.display='none'; $('shDone').style.display='block'; $('shipSheet').classList.add('open');
+}
+function renderShips(){
+  if(!$('shipList')) return;
+  const l=S.ships.slice().sort((a,b)=>b.ts-a.ts).slice(0,30);
+  $('shipList').innerHTML=l.length?l.map(sh=>{ const ls=shipLines(sh);
+    return `<div class="bkr"><div><b>${svkNo(sh.no)}</b> · ${esc(sh.customer)}<br><small>${fmtD(sh.date)} · ${ls.length} top · ${f1(sumM(ls))} m · ${f1(sumK(ls))} kg${sh.plate?' · '+esc(sh.plate):''}</small></div>
+      <button onclick="sharePdf('${sh.id}')">📄 PDF</button><button onclick="shareXlsx('${sh.id}')">📊 Excel</button><button onclick="cancelShip('${sh.id}')" aria-label="iptal">✕</button></div>`; }).join('')
+    :`<p class="small" style="margin:0">Henüz sevkiyat yok</p>`;
+}
+async function cancelShip(id){
+  const sh=S.ships.find(s=>s.id===id); if(!sh) return; const rs=shipRolls(sh);
+  if(!await ask(`${svkNo(sh.no)} iptal edilsin mi?\n${rs.length} top tekrar "Depoda" olur. Sevkiyat numarası tekrar kullanılmaz.`)) return;
+  DB.write([['del','ships',id],...rs.map(r=>{ const n={...r}; delete n.loadTs; delete n.loadBatch; return ['put','rolls',n]; })]); toast('Sevkiyat iptal edildi');
+}
+function unshipRoll(r){ // tek topun sevkini geri al (sevkiyattan da çıkar)
+  const n={...r}; delete n.loadTs; delete n.loadBatch; const ops=[['put','rolls',n]];
+  const sh=S.ships.find(s=>s.rollIds.includes(r.id));
+  if(sh){ const ids=sh.rollIds.filter(x=>x!==r.id); ops.push(ids.length?['put','ships',{...sh,rollIds:ids}]:['del','ships',sh.id]); }
+  DB.write(ops);
+}
+
+/* ---- Paylaşım yardımcıları ---- */
+async function shareFile(blob,name,title,fallbackMsg){
+  const f=new File([blob],name,{type:blob.type});
+  try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title}); return; } }
+  catch(e){ if(e.name==='AbortError') return; }
+  download(blob,name); if(fallbackMsg) note(fallbackMsg);
+}
+
+/* ---- PDF: sayfalar resim olarak (Türkçe harf sorunu olmaz) ---- */
+function drawPackingPages(sh){
+  const W=1240,H=1754,P=70, lines=shipLines(sh), groups=shipGroups(lines), pages=[];
+  const orders=sh.orderIds.map(orderById).filter(Boolean);
+  // satır listesi: grup başlığı yok; her grup sonunda ara toplam
+  const items=[]; groups.forEach(g=>{ g.lines.forEach(l=>items.push({t:'r',l})); items.push({t:'s',g}); }); items.push({t:'T'});
+  const RH=34, FIRST=21, NEXT=34; // sayfa başına satır
+  const chunks=[]; let i=0, first=true; while(i<items.length){ const n=first?FIRST:NEXT; chunks.push(items.slice(i,i+n)); i+=n; first=false; }
+  const FONT='Arial,Helvetica,sans-serif', BR='#0f3b40', MUTE='#555';
+  const cols=[['Sıra',P+10,'left'],['Seri No',P+80,'left'],['Sipariş',P+215,'left'],['Desen',P+345,'left'],['Renk',P+480,'left'],['Top No',P+760,'center'],['Metre',P+930,'right'],['Kg',W-P-10,'right']];
+  let seq=0;
+  chunks.forEach((ch,pi)=>{
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+    const T=(s,px,py,{size=22,wt=400,col='#111',al='left',max}={})=>{ x.font=`${wt} ${size}px ${FONT}`; x.fillStyle=col; x.textAlign=al; x.textBaseline='middle'; s=String(s);
+      if(max) while(s.length>1&&x.measureText(s).width>max) s=s.slice(0,-2)+'…'; x.fillText(s,px,py); };
+    const line=(y,c='#ccc',w=1)=>{ x.fillStyle=c; x.fillRect(P,y,W-2*P,w); };
+    x.fillStyle='#fff'; x.fillRect(0,0,W,H);
+    let y=P;
+    if(pi===0){
+      x.fillStyle=BR; x.fillRect(P,y,W-2*P,110);
+      T('ÇEKİ LİSTESİ',P+28,y+42,{size:40,wt:700,col:'#fff'}); T('PACKING LIST',P+28,y+84,{size:22,col:'#a9cfd2'});
+      T(svkNo(sh.no),W-P-28,y+42,{size:38,wt:700,col:'#fff',al:'right'}); T(fmtD(sh.date),W-P-28,y+84,{size:22,col:'#a9cfd2',al:'right'});
+      y+=140;
+      const info=[['Müşteri',sh.customer],['Sipariş no',orders.map(o=>o.no?'#'+o.no:'—').join(', ')||'—'],['Sevk tarihi',fmtTs(sh.ts)],['Araç plakası',sh.plate||'—']];
+      if(sh.note) info.push(['Not',sh.note]);
+      info.forEach(([k,v],j)=>{ T(k,P+10,y+18+j*38,{size:21,col:MUTE}); T(v,P+220,y+18+j*38,{size:24,wt:700,max:W-2*P-240}); });
+      y+=info.length*38+20;
+      const box=[['Toplam top',String(lines.length)],['Toplam metre',f1(sumM(lines))],['Toplam kg',f1(sumK(lines))]], bw=(W-2*P-40)/3;
+      box.forEach(([k,v],j)=>{ const bx=P+j*(bw+20); x.fillStyle='#eef3f3'; x.fillRect(bx,y,bw,96); x.fillStyle=BR; x.fillRect(bx,y,bw,6);
+        T(v,bx+bw/2,y+44,{size:38,wt:700,col:BR,al:'center'}); T(k,bx+bw/2,y+80,{size:19,col:MUTE,al:'center'}); });
+      y+=126;
+    } else { T(svkNo(sh.no)+' · '+sh.customer+' · Çeki listesi (devam)',P,y+20,{size:24,wt:700,col:BR}); y+=56; }
+    x.fillStyle=BR; x.fillRect(P,y,W-2*P,44);
+    cols.forEach(([l,px,al])=>T(l,px,y+22,{size:19,wt:700,col:'#fff',al}));
+    y+=44;
+    ch.forEach(it=>{
+      if(it.t==='r'){ seq++; const {r,o,c}=it.l; if(seq%2===0){ x.fillStyle='#f6f8f8'; x.fillRect(P,y,W-2*P,RH); }
+        T(seq,P+10,y+RH/2,{size:20,col:MUTE}); T(r.id,P+80,y+RH/2,{size:20,wt:700});
+        T(o&&o.no?'#'+o.no:'—',P+215,y+RH/2,{size:20,max:120}); T(prodOf(o||{},c)||'—',P+345,y+RH/2,{size:20,wt:700,max:125});
+        T(c.name,P+480,y+RH/2,{size:20,max:240}); T(r.n,P+760,y+RH/2,{size:20,al:'center'});
+        T(f1(r.m),P+930,y+RH/2,{size:20,wt:700,al:'right'}); T(f1(r.kg),W-P-10,y+RH/2,{size:20,wt:700,al:'right'});
+        y+=RH; line(y,'#e4e4e4'); }
+      else if(it.t==='s'){ const g=it.g; x.fillStyle='#e3eded'; x.fillRect(P,y,W-2*P,RH);
+        T(`Ara toplam · ${prodOf(g.o||{},g.c)?'Desen '+prodOf(g.o||{},g.c)+' – ':''}${g.c.name}`,P+80,y+RH/2,{size:19,wt:700,col:BR,max:600});
+        T(g.lines.length+' top',P+760,y+RH/2,{size:19,wt:700,col:BR,al:'center'});
+        T(f1(sumM(g.lines)),P+930,y+RH/2,{size:19,wt:700,col:BR,al:'right'}); T(f1(sumK(g.lines)),W-P-10,y+RH/2,{size:19,wt:700,col:BR,al:'right'});
+        y+=RH+6; }
+      else { x.fillStyle=BR; x.fillRect(P,y,W-2*P,48);
+        T('GENEL TOPLAM',P+80,y+24,{size:22,wt:700,col:'#fff'}); T(lines.length+' top',P+760,y+24,{size:22,wt:700,col:'#fff',al:'center'});
+        T(f1(sumM(lines)),P+930,y+24,{size:22,wt:700,col:'#fff',al:'right'}); T(f1(sumK(lines)),W-P-10,y+24,{size:22,wt:700,col:'#fff',al:'right'});
+        y+=48;
+        if(pi===chunks.length-1){ y+=80; T('Teslim eden',P+120,y,{size:20,col:MUTE,al:'center'}); T('Teslim alan',W-P-120,y,{size:20,col:MUTE,al:'center'});
+          x.fillStyle='#999'; x.fillRect(P,y+70,240,1); x.fillRect(W-P-240,y+70,240,1); } }
+    });
+    T(`${svkNo(sh.no)} · Sayfa ${pi+1} / ${chunks.length}`,W/2,H-40,{size:18,col:'#999',al:'center'});
+    pages.push(cv);
+  });
+  return pages;
+}
+function pdfFromCanvases(cvs){
+  const enc=new TextEncoder(), parts=[], offs=[]; let len=0;
+  const put=d=>{ const b=typeof d==='string'?enc.encode(d):d; parts.push(b); len+=b.length; };
+  const obj=(n,body)=>{ offs[n]=len; put(`${n} 0 obj\n`); body(); put('\nendobj\n'); };
+  put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const n=cvs.length, pageIds=[...Array(n)].map((_,i)=>3+i*3);
+  obj(1,()=>put('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2,()=>put(`<< /Type /Pages /Count ${n} /Kids [${pageIds.map(i=>i+' 0 R').join(' ')}] >>`));
+  cvs.forEach((cv,i)=>{ const p=3+i*3, c=p+1, im=p+2;
+    const b64=cv.toDataURL('image/jpeg',0.9).split(',')[1], bin=atob(b64), jpg=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) jpg[k]=bin.charCodeAt(k);
+    const cs=`q 595.28 0 0 841.89 0 0 cm /Im${i} Do Q`;
+    obj(p,()=>put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${im} 0 R >> >> /Contents ${c} 0 R >>`));
+    obj(c,()=>{ put(`<< /Length ${cs.length} >>\nstream\n`); put(cs); put('\nendstream'); });
+    obj(im,()=>{ put(`<< /Type /XObject /Subtype /Image /Width ${cv.width} /Height ${cv.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`); put(jpg); put('\nendstream'); });
+  });
+  const total=3+n*3, xref=len;
+  put(`xref\n0 ${total}\n0000000000 65535 f \n`+[...Array(total-1)].map((_,i)=>String(offs[i+1]).padStart(10,'0')+' 00000 n \n').join(''));
+  put(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts,{type:'application/pdf'});
+}
+function sharePdf(id){ const sh=S.ships.find(s=>s.id===id); if(!sh) return;
+  shareFile(pdfFromCanvases(drawPackingPages(sh)),fileBase(sh)+'.pdf','Çeki listesi '+svkNo(sh.no)); }
+
+/* ---- Excel (.xlsx) – küçük yerleşik yazıcı (zip, sıkıştırmasız) ---- */
+const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+const crc32=b=>{ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+function zipStore(files){ // files: [[name, string]]
+  const enc=new TextEncoder(), out=[], cen=[]; let off=0;
+  const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+  files.forEach(([name,str])=>{ const nm=enc.encode(name), d=enc.encode(str), c=crc32(d);
+    const lh=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0)]);
+    out.push(lh,nm,d);
+    cen.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nm);
+    off+=lh.length+nm.length+d.length; });
+  const cl=cen.reduce((a,b)=>a+b.length,0);
+  const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cl),...u32(off),...u16(0)]);
+  return new Blob([...out,...cen,end],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xlsxFromRows(rows,widths,sheetName){ // rows: [[{v,s}|string|number|null]]
+  const x=s=>String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const col=i=>{ let s=''; i++; while(i){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; };
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>`+
+    rows.map((r,ri)=>`<row r="${ri+1}">`+r.map((c,ci)=>{ if(c==null||c==='') return ''; const o=typeof c==='object'?c:{v:c}; const ref=col(ci)+(ri+1), st=o.s?` s="${o.s}"`:'';
+      return typeof o.v==='number'?`<c r="${ref}"${st}><v>${o.v}</v></c>`:`<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${x(o.v)}</t></is></c>`; }).join('')+'</row>').join('')+`</sheetData></worksheet>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FF0F3B40"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE3EDED"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0F3B40"/></patternFill></fill></fills>
+<borders count="2"><border/><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom></border></borders>
+<cellStyleXfs count="1"><xf/></cellStyleXfs>
+<cellXfs count="10"><xf/><xf fontId="1" applyFont="1"/><xf fontId="2" applyFont="1"/><xf fontId="3" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf borderId="1" applyBorder="1"/><xf numFmtId="2" borderId="1" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="1" borderId="1" applyNumberFormat="1" applyBorder="1"/><xf fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="2" fontId="1" fillId="2" borderId="1" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="2" fontId="3" fillId="3" borderId="1" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/></cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+  return zipStore([
+    ['[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+    ['_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${x(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml',styles],
+    ['xl/worksheets/sheet1.xml',sheet]]);
+}
+function shareXlsx(id){
+  const sh=S.ships.find(s=>s.id===id); if(!sh) return;
+  const lines=shipLines(sh), groups=shipGroups(lines), orders=sh.orderIds.map(orderById).filter(Boolean);
+  const H=v=>({v,s:3}), B=v=>({v,s:1}), N2=v=>({v:Math.round(v*100)/100,s:5}), N0=v=>({v,s:6}), T=v=>({v,s:4}), SL=v=>({v,s:7}), SN=v=>({v:Math.round(v*100)/100,s:8}), GN=v=>({v:Math.round(v*100)/100,s:9});
+  const rows=[[{v:'ÇEKİ LİSTESİ / PACKING LIST',s:2}],[],
+    [B('Sevkiyat no'),svkNo(sh.no)],[B('Müşteri'),sh.customer],[B('Sipariş no'),orders.map(o=>o.no?'#'+o.no:'—').join(', ')||'—'],
+    [B('Sevk tarihi'),fmtTs(sh.ts)],[B('Araç plakası'),sh.plate||'—']];
+  if(sh.note) rows.push([B('Not'),sh.note]);
+  rows.push([B('Toplam top'),{v:lines.length,s:1}],[B('Toplam metre'),{v:Math.round(sumM(lines)*100)/100,s:1}],[B('Toplam kg'),{v:Math.round(sumK(lines)*100)/100,s:1}],[]);
+  rows.push(['Sıra','Seri No','Sipariş','Desen','Renk','Top No','Metre','Kg'].map(H));
+  let seq=0;
+  groups.forEach(g=>{ g.lines.forEach(({r,o,c})=>{ seq++; rows.push([N0(seq),T(r.id),T(o&&o.no?'#'+o.no:'—'),T(prodOf(o||{},c)||'—'),T(c.name),N0(r.n),N2(r.m),N2(r.kg)]); });
+    rows.push([SL(''),SL('Ara toplam'),SL(''),SL(prodOf(g.o||{},g.c)||''),SL(g.c.name),{v:g.lines.length,s:7},SN(sumM(g.lines)),SN(sumK(g.lines))]); });
+  rows.push([H(''),H('GENEL TOPLAM'),H(''),H(''),H(''),{v:lines.length,s:3},GN(sumM(lines)),GN(sumK(lines))]);
+  const blob=xlsxFromRows(rows,[14,11,11,12,22,8,11,11],svkNo(sh.no));
+  shareFile(blob,fileBase(sh)+'.xlsx','Çeki listesi '+svkNo(sh.no),'Excel dosyası telefona indirildi (İndirilenler). WhatsApp’ta 📎 → Belge ile müşteriye gönderebilirsiniz.');
+}
+
 /* ================= GENEL ================= */
-function renderAll(){ norm(); purgeDue(); renderUretim(); renderOrders(); renderYukle(); renderHist(); renderRep(); renderBk(); renderBkBanner(); }
+function renderAll(){ norm(); purgeDue(); renderUretim(); renderOrders(); renderYukle(); renderHist(); renderRep(); renderShips(); renderBk(); renderBkBanner(); }
 renderAll();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 /* Uygulama olarak yükleme (Chrome) */
@@ -938,11 +1250,13 @@ if(firebaseConfig.apiKey && !localMode){
     const app = initializeApp(firebaseConfig);
     const auth = A.getAuth(app);
     const db = F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})});
-    const COLL={orders:'u_orders',rolls:'u_toplar',meta:'u_meta'};
+    const COLL={orders:'u_orders',rolls:'u_toplar',ships:'u_sevk',desen:'u_desen',resim:'u_resim',meta:'u_meta'};
     let uid=null, unsubs=[];
-    const cache={orders:{},rolls:{},meta:null}, first={}, pend={};
+    const cache={orders:{},rolls:{},ships:{},desen:{},meta:null}, first={}, pend={};
     const clean=o=>JSON.parse(JSON.stringify(o));
-    window.Cloud={on:true,ready:false,write(ops){
+    window.Cloud={on:true,ready:false,
+    async getImg(id){ if(!uid) return null; const d=await F.getDoc(F.doc(db,'users',uid,'u_resim',id)); return d.exists()?d.data().data:null; },
+    write(ops){
       if(!uid) return;
       for(let i=0;i<ops.length;i+=400){ const b=F.writeBatch(db);
         ops.slice(i,i+400).forEach(([op,coll,v])=>{ const id=coll==='meta'?'main':(op==='put'?v.id:v), r=F.doc(db,'users',uid,COLL[coll],id);
@@ -954,15 +1268,17 @@ if(firebaseConfig.apiKey && !localMode){
     function status(){ const p=Object.values(pend).some(Boolean); setSync(p?(navigator.onLine?'pending':'offline'):(fromCache&&!navigator.onLine?'offline':'ok')); }
     function onSnap(kind,meta){
       first[kind]=true; pend[kind]=meta.hasPendingWrites; fromCache=meta.fromCache;
-      if(!(first.orders&&first.rolls&&first.meta)) return;
+      if(!(first.orders&&first.rolls&&first.ships&&first.desen&&first.meta)) return;
       window.Cloud.ready=true;
-      setRemote({orders:Object.values(cache.orders),rolls:Object.values(cache.rolls),meta:cache.meta||{colors:[]}});
+      setRemote({orders:Object.values(cache.orders),rolls:Object.values(cache.rolls),ships:Object.values(cache.ships),desen:Object.values(cache.desen),meta:cache.meta||{colors:[]}});
       status();
     }
     function listen(){
       const err=e=>{console.error(e);setSync('err');};
       unsubs.push(F.onSnapshot(F.collection(db,'users',uid,COLL.orders),{includeMetadataChanges:true},sn=>{cache.orders={};sn.forEach(d=>cache.orders[d.id]=d.data());onSnap('orders',sn.metadata);},err));
       unsubs.push(F.onSnapshot(F.collection(db,'users',uid,COLL.rolls),{includeMetadataChanges:true},sn=>{cache.rolls={};sn.forEach(d=>cache.rolls[d.id]=d.data());onSnap('rolls',sn.metadata);},err));
+      unsubs.push(F.onSnapshot(F.collection(db,'users',uid,COLL.ships),{includeMetadataChanges:true},sn=>{cache.ships={};sn.forEach(d=>cache.ships[d.id]=d.data());onSnap('ships',sn.metadata);},err));
+      unsubs.push(F.onSnapshot(F.collection(db,'users',uid,COLL.desen),{includeMetadataChanges:true},sn=>{cache.desen={};sn.forEach(d=>cache.desen[d.id]=d.data());onSnap('desen',sn.metadata);},err));
       unsubs.push(F.onSnapshot(F.doc(db,'users',uid,COLL.meta,'main'),{includeMetadataChanges:true},d=>{cache.meta=d.exists()?d.data():null;onSnap('meta',d.metadata);},err));
     }
     window.addEventListener('online',status); window.addEventListener('offline',status);
@@ -975,7 +1291,7 @@ if(firebaseConfig.apiKey && !localMode){
       try{ await A.signInWithEmailAndPassword(auth,$('lgEmail').value.trim(),$('lgPass').value); }
       catch(e){ $('lgErr').textContent=navigator.onLine?'E-posta veya şifre hatalı.':'İnternet bağlantısı yok.'; }
       $('lgBtn').disabled=false; };
-    $('logoutBtn').onclick=async()=>{ if(!await window.ask('Çıkış yapılsın mı? Veriler bulutta kalır.')) return; await A.signOut(auth); setRemote({orders:[],rolls:[],meta:{colors:[]}}); };
+    $('logoutBtn').onclick=async()=>{ if(!await window.ask('Çıkış yapılsın mı? Veriler bulutta kalır.')) return; await A.signOut(auth); setRemote({orders:[],rolls:[],ships:[],desen:[],meta:{colors:[]}}); };
   }catch(e){ console.error(e); setSync('err'); }
 }
 </script>
