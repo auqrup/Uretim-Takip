@@ -102,6 +102,15 @@ details.pblk .roll{padding-left:6px}
 .mx .rt{font-weight:800;color:var(--brand);min-width:44px}
 .mx tfoot td{background:#eef3f3;font-weight:800;color:var(--brand)}
 .mx .mxx{border:none;background:none;color:var(--bad);font-size:15px;padding:2px 4px;margin-top:2px}
+/* Desen/renk seçici */
+.pick{display:flex;align-items:center;gap:10px;width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:6px 10px 6px 6px;font:inherit;text-align:left;color:var(--ink)}
+.pick .pk-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.pick .pk-t b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .pk-t span{font-size:14px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .pk-c{color:var(--mute);font-size:16px}
+.pkd{background:#fff;border-radius:14px;padding:10px 12px;margin:10px 0;border:1.5px solid var(--line)}
+.pkh{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pkh b{display:block;font-size:18px;color:var(--brand)}.pkh small{color:var(--mute);font-weight:600}
 /* Sipariş kartları */
 .ocard{background:var(--card);border-radius:18px;overflow:hidden;margin-bottom:22px;border:1.5px solid #c9d6d6;box-shadow:0 3px 10px rgba(15,59,64,.08)}
 .ocard.delpend{border:2px dashed var(--bad)}
@@ -392,6 +401,14 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
   <p id="dlgMsg"></p>
   <div class="btns"><button class="btn sec" id="dlgNo">Vazgeç</button><button class="btn" id="dlgYes">Evet</button></div>
 </div></div>
+<!-- Desen/renk seçimi -->
+<div class="sheet" id="pickSheet" onclick="if(event.target===this)closeSheet('pickSheet')">
+  <div class="box">
+    <h3 id="pickTitle">Desen ve renk</h3>
+    <div id="pickList"></div>
+    <button class="btn sec" onclick="closeSheet('pickSheet')">Kapat</button>
+  </div>
+</div>
 <div class="sheet dlg" id="imgView" onclick="this.classList.remove('open')"><div class="box" style="padding:10px;max-width:640px">
   <img id="imgBig" alt="" style="width:100%;border-radius:12px;display:block;background:#eee"><p id="imgCap" style="text-align:center;font-weight:800;margin:10px 0 4px;color:var(--brand)"></p>
 </div></div>
@@ -495,6 +512,17 @@ function comboOpts(o,sel){
   return groupsOf(o).map(([p,cs])=>`<optgroup label="${esc(p?dLabel(p):'—')}">`+cs.map(c=>{ const x=calcColor(o.id,c.id);
     return `<option value="${c.id}"${c.id===sel?' selected':''}>${esc(p?p+' – ':'')}${esc(c.name)} (${x.r}/${x.q})</option>`; }).join('')+'</optgroup>').join('');
 }
+/* Desen/renk seçimi: fotoğraflı pencere */
+let pickRow=0;
+function openPick(i){
+  pickRow=i; const o=orderById(PD.o); if(!o) return; const sel=PD.rows[i]&&PD.rows[i].cid;
+  $('pickTitle').textContent=`${i+1}. top için desen ve renk`;
+  $('pickList').innerHTML=groupsOf(o).map(([p,cs])=>{ const T=calcSet(o,cs);
+    return `<div class="pkd"><div class="pkh">${thumbHTML(p,84)}<div><b>${esc(p?dLabel(p):'—')}</b><small>${T.r} / ${T.q} top</small></div></div>
+      <div class="chips">${cs.map(c=>{ const x=calcColor(o.id,c.id); return `<button class="chip${c.id===sel?' on':''}${x.r>=x.q?(x.r>x.q?' over':' full'):''}" onclick="pickSet('${c.id}')"><span class="dot" style="background:${c.hex};width:20px;height:20px"></span><span>${esc(c.name)}<small>${x.r} / ${x.q} top${x.r>=x.q?(x.r>x.q?' · fazla':' ✓'):''}</small></span></button>`; }).join('')}</div></div>`; }).join('');
+  $('pickSheet').classList.add('open');
+}
+function pickSet(cid){ closeSheet('pickSheet'); rowSet(pickRow,'cid',cid); setTimeout(()=>{ const m=$('uRows').querySelector(`input[data-m="${pickRow}"]`); m&&!m.value&&m.focus(); },60); }
 function defaultCid(o){ const last=PD.rows.length?PD.rows[PD.rows.length-1].cid:LS.get(LASTC); return colorOf(o,last)?last:(o.colors[0]?o.colors[0].id:''); }
 function renderUretim(){
   const l=act(); $('uNoOrder').style.display=l.length?'none':'block'; $('uForm').style.display=l.length?'block':'none';
@@ -506,7 +534,8 @@ function renderUretim(){
   $('uPartiNo').textContent=nextParti();
   $('uRows').innerHTML=PD.rows.map((r,i)=>`<div class="prow">
       <div class="pno">${i+1}</div>
-      <div class="pf"><div class="pfs">${thumbHTML(colorOf(o,r.cid)?prodOf(o,colorOf(o,r.cid)):'',44)}<select data-i="${i}" onchange="rowSet(${i},'cid',this.value)">${comboOpts(o,r.cid)}</select></div>
+      <div class="pf">${(()=>{ const c=colorOf(o,r.cid), x=c?calcColor(o.id,c.id):null;
+        return `<button class="pick" onclick="openPick(${i})">${thumbHTML(c?prodOf(o,c):'',48,false)}<span class="pk-t">${c?`<b>${esc(prodOf(o,c)||'—')}</b><span><span class="dot" style="background:${c.hex};width:13px;height:13px"></span> ${esc(c.name)} · ${x.r}/${x.q}</span>`:'<b>Desen ve renk seçin</b>'}</span><span class="pk-c">▾</span></button>`; })()}
         <div class="row2"><div class="unit"><input inputmode="decimal" autocomplete="off" placeholder="Metre" value="${esc(r.m)}" data-m="${i}" oninput="rowSet(${i},'m',this.value)"><span>m</span></div>
         <div class="unit"><input inputmode="decimal" autocomplete="off" placeholder="Kg" value="${esc(r.kg)}" data-k="${i}" oninput="rowSet(${i},'kg',this.value)"><span>kg</span></div></div></div>
       <button class="ib del" onclick="rowDel(${i})" aria-label="satırı sil">✕</button></div>`).join('');
@@ -782,7 +811,7 @@ function addCustomColor(){
   const meta={...(S.meta||{}),colors:((S.meta&&S.meta.colors)||[]).concat([{name,hex}])};
   DB.write([['put','meta',meta]]); openPalette(); toast('Renk listeye eklendi ✓');
 }
-function saveOrder(){
+async function saveOrder(){
   document.activeElement&&document.activeElement.blur&&document.activeElement.blur();
   const customer=$('oCustomer').value.trim(), no=$('oNo').value.trim(), date=$('oDate').value||today();
   if(!customer) return toast('Müşteri adı gerekli');
@@ -791,6 +820,8 @@ function saveOrder(){
   if(rows.some(r=>!r.no)) return toast('Adet girilen her satıra desen no yazın');
   const used=rows.filter(r=>M.colors.some(c=>r.q[c.name]>0));
   if(!used.length) return toast('Tabloya top adedi girin');
+  const empty=rows.filter(r=>r.no&&!M.colors.some(c=>r.q[c.name]>0));
+  if(empty.length&&!await ask(`Bu desenlere hiç top adedi girilmedi:\n${empty.map(r=>'• Desen '+r.no).join('\n')}\n\nBu desenler siparişe kaydedilmeyecek (fotoğrafları kütüphanede kalır).\nYine de kaydedilsin mi?`)) return;
   const old=editOrderId?orderById(editOrderId):null, colors=[];
   used.forEach(r=>M.colors.forEach(c=>{ const q=r.q[c.name]; if(q>0) colors.push({id:r.ids[c.name]||uid(),name:c.name,hex:c.hex,qty:q,prod:r.no}); }));
   if(old){ const keep=new Set(colors.map(c=>c.id)), lost=old.colors.filter(c=>!keep.has(c.id)&&hasRolls(old.id,c.id));
