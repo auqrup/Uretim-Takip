@@ -38,8 +38,6 @@ label.f{display:block;font-size:13px;color:var(--mute);margin:12px 2px 6px;font-
 .btn.danger{background:#f8e7e7;color:var(--bad)}
 .btn.big{padding:18px;font-size:19px}
 .btns{display:flex;gap:8px}.btns .btn{flex:1}
-.seg{display:flex;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px}
-.seg button{flex:1;border:none;border-radius:10px;background:none;font:inherit;font-size:16px;font-weight:700;color:var(--mute);padding:11px 4px}
 .dot{width:16px;height:16px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.18);display:inline-block}
 /* Üretim girişi */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -64,29 +62,11 @@ label.f{display:block;font-size:13px;color:var(--mute);margin:12px 2px 6px;font-
 .dayh{font-size:13px;font-weight:800;color:var(--brand);margin:14px 4px 4px}
 .tot{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .tot span{background:#eef3f3;border-radius:999px;padding:5px 11px;font-size:13.5px;font-weight:800;color:var(--brand)}
-/* Parti girişi */
-.phead{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:10px 12px;background:var(--brand);color:#fff;border-radius:12px;font-weight:700}
-.phead b{font-size:19px}
-.prow{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
-.pno{flex:none;width:40px;height:40px;border-radius:50%;background:#0f3b40;color:#fff;font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;margin-top:4px}
-.pf{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
-.pf select{padding:10px;font-size:15px;font-weight:600}
-.pf .row2 input{padding:11px 34px 11px 12px;font-size:19px;font-weight:800}
-.prow .ib{margin-top:4px}
+/* Sipariş top no rozeti */
 .pos{flex:none;width:26px;height:26px;border-radius:50%;background:#e9f1f1;color:var(--brand);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
-details.pblk{border-bottom:1px solid var(--line)}
-details.pblk:last-child{border-bottom:none}
-details.pblk summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 0;cursor:pointer;font-size:15px}
-details.pblk summary::-webkit-details-marker{display:none}
-details.pblk summary>div{flex:1;min-width:0}
-details.pblk summary small{display:block;color:var(--mute);font-size:12.5px}
-details.pblk summary::before{content:'▸';color:var(--mute);font-size:14px;transition:transform .15s}
-details.pblk[open] summary::before{transform:rotate(90deg)}
-details.pblk .roll{padding-left:6px}
 /* Desen fotoğrafı + sipariş tablosu */
 .thumb{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;object-fit:cover;background:#eef0f0;border:1px solid var(--line);font-size:18px;vertical-align:middle;cursor:pointer}
 .thumb.none{cursor:default;color:var(--mute)}
-.pfs{display:flex;gap:8px;align-items:center}.pfs select{flex:1;min-width:0}
 .phl{display:flex;align-items:center;gap:8px;color:var(--brand)!important;font-weight:800!important;font-size:14px!important}
 .mx-wrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:12px;background:#fff;-webkit-overflow-scrolling:touch}
 .mx{border-collapse:separate;border-spacing:0;font-size:14px;min-width:100%}
@@ -166,14 +146,6 @@ details.arch summary{font-size:14px;color:var(--mute);font-weight:700;padding:12
 .sheet.dlg{align-items:center;z-index:35;padding:20px}
 .sheet.dlg .box{border-radius:20px;max-width:420px}
 #dlgMsg{font-size:17px;line-height:1.5;white-space:pre-line;margin:4px 2px 0}
-.pcard{border:1.5px solid var(--line);box-shadow:none;margin:0 0 10px;padding:10px 12px}
-.pn{display:flex;gap:8px;align-items:center}
-.pn input{font-weight:700}
-.pn button{border:none;background:#f8e7e7;color:var(--bad);width:44px;height:46px;border-radius:12px;font-size:18px;flex:none}
-.oc{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-.oc .nm{flex:1;font-weight:600}
-.oc input{width:96px;text-align:center;font-weight:800;padding:10px}
-.oc button{border:none;background:#f8e7e7;color:var(--bad);width:38px;height:38px;border-radius:10px;font-size:18px;flex:none}
 .pal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
 .pal button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 2px;font:inherit;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--ink);line-height:1.2}
 .pal button .dot{width:30px;height:30px}
@@ -434,9 +406,9 @@ const PALETTE = [
 ];
 
 /* ================= VERİ =================
-   Bulutta: users/{uid}/u_orders (siparişler), u_toplar (her top), u_meta (ek renkler)
+   Bulutta users/{uid}/: u_orders, u_toplar (toplar), u_sevk, u_desen (küçük resim), u_resim (büyük resim), u_meta/main
    Sipariş: {id, customer, no, date, ts, colors:[{id, name, hex, qty(top), prod(desen)}]}
-   Top:     {id(6 haneli seri), orderId, colorId, n(top no), m(metre), kg, date, ts, loadTs?} */
+   Top:     {id(6 haneli seri), orderId, colorId, n(renk içi no), ono(sipariş içi no), m, kg, date, ts, printTs?, loadTs?} */
 const LKEY='uretim-takip-v2';
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const EMPTY=()=>({orders:[],rolls:[],ships:[],desen:[],meta:{colors:[]}});
@@ -452,12 +424,13 @@ function applyOps(ops){
   ops.forEach(([op,coll,v])=>{
     if(coll==='meta'){ if(op==='put') S.meta=v; return; }
     if(coll==='resim'){ const id=op==='put'?v.id:v; if(op==='put'){ IMG[id]=v.data; if(!(window.Cloud&&window.Cloud.on)) LS.set(imgLS(id),v.data); } else { delete IMG[id]; try{ localStorage.removeItem(imgLS(id)); }catch(e){} } return; }
+    if(coll==='rolls') RIX=null;
     const arr=S[coll], id=op==='put'?v.id:v, i=arr.findIndex(x=>x.id===id);
     if(op==='put'){ if(i>=0) arr[i]=v; else arr.push(v); } else if(i>=0) arr.splice(i,1);
   });
 }
 const DB={ write(ops){ if(window.Cloud&&window.Cloud.on) window.Cloud.write(ops); applyOps(ops); saveLocal(); renderAll(); } };
-function setRemote(d){ S=d; norm(); saveLocal(); renderAll(); autoBackup(); }
+function setRemote(d){ S=d; RIX=null; norm(); saveLocal(); renderAll(); autoBackup(); backfillOno(); }
 
 /* ================= YARDIMCI ================= */
 const $=id=>document.getElementById(id);
@@ -481,14 +454,16 @@ const oLabel=o=>o?(o.customer+(o.no?' #'+o.no:'')):'?';
 const colorOf=(o,cid)=>o&&o.colors.find(c=>c.id===cid);
 const prodOf=(o,c)=>c.prod??o.product??'';
 function groupsOf(o){ const m=[]; o.colors.forEach(c=>{ const p=prodOf(o,c); let g=m.find(x=>x[0]===p); if(!g) m.push(g=[p,[]]); g[1].push(c); }); return m; }
-const prodsText=o=>groupsOf(o).map(g=>g[0]).filter(Boolean).join(', ');
 const dLabel=p=>p?('Desen '+p):'';
 const cLabel=(o,c)=>(prodOf(o,c)?dLabel(prodOf(o,c))+' – ':'')+c.name;
 const allColors=()=>PALETTE.map(([n,h])=>({name:n,hex:h})).concat((S.meta&&S.meta.colors)||[]);
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 
 /* Hesap */
-const rollsOf=(oid,cid)=>S.rolls.filter(r=>r.orderId===oid&&(!cid||r.colorId===cid));
+// Sipariş → toplar dizini (her değişiklikte yenilenir; tüm topları tekrar tekrar taramamak için)
+let RIX=null;
+const rix=()=>{ if(!RIX){ RIX=new Map(); S.rolls.forEach(r=>{ let l=RIX.get(r.orderId); if(!l) RIX.set(r.orderId,l=[]); l.push(r); }); } return RIX; };
+const rollsOf=(oid,cid)=>{ const l=rix().get(oid)||[]; return cid?l.filter(r=>r.colorId===cid):l; };
 function calcColor(oid,cid){
   const o=orderById(oid), c=colorOf(o,cid), rs=rollsOf(oid,cid), q=c?c.qty:0;
   let m=0,kg=0,s=0,sm=0,skg=0; rs.forEach(r=>{ m+=r.m||0; kg+=r.kg||0; if(r.loadTs){ s++; sm+=r.m||0; skg+=r.kg||0; } });
@@ -518,7 +493,7 @@ const custOrders=cu=>act().filter(o=>o.customer===cu);
 function renderUretim(){
   const l=act(); $('uNoOrder').style.display=l.length?'none':'block'; $('uForm').style.display=l.length?'block':'none';
   const cs=custList();
-  if(!cs.includes(U.cu)) U.cu=cs.length===1?cs[0]:(cs.includes(U.cu)?U.cu:'');
+  if(!cs.includes(U.cu)) U.cu=cs.length===1?cs[0]:'';
   $('uCust').innerHTML=`<option value="">— Müşteri seçin —</option>`+cs.map(c=>`<option value="${esc(c)}">${esc(c)} (${custOrders(c).length})</option>`).join(''); $('uCust').value=U.cu||'';
   const os=U.cu?custOrders(U.cu):[];
   if(!os.find(o=>o.id===U.o)) U.o=os.length===1?os[0].id:'';
@@ -533,7 +508,7 @@ function renderUretim(){
   $('uPick').innerHTML=c?(()=>{ const x=calcColor(o.id,c.id); return `${thumbHTML(prodOf(o,c),56,false)}<span class="pk-t"><b>${esc(prodOf(o,c)||'—')}</b><span><span class="dot" style="background:${c.hex};width:13px;height:13px"></span> ${esc(c.name)} · ${x.r}/${x.q}</span></span><span class="pk-c">▾</span>`; })()
     :`<span class="thumb none" style="width:56px;height:56px">🧵</span><span class="pk-t"><b>Desen ve renk seçin</b><span>Fotoğraflardan seçin</span></span><span class="pk-c">▾</span>`;
   if(c){ const x=calcColor(o.id,c.id); $('uSum').style.display='block';
-    $('uSum').innerHTML=`Sıradaki: <b>Top ${nextN(o.id,c.id)} / ${x.q}</b><small>Bu renkte üretilen: ${x.r} top · ${f1(x.m)} m · ${f1(x.kg)} kg${x.kal?` · Kalan ${x.kal} top`:x.fz?` · Fazla +${x.fz}`:' · Tamamlandı ✓'}</small>`; }
+    $('uSum').innerHTML=`Sıradaki: <b>Top ${nextOno(o.id)} / ${orderQty(o)}</b> · bu renkte ${nextN(o.id,c.id)}. top<small>Bu renkte üretilen: ${x.r} top · ${f1(x.m)} m · ${f1(x.kg)} kg${x.kal?` · Kalan ${x.kal} top`:x.fz?` · Fazla +${x.fz}`:' · Tamamlandı ✓'}</small>`; }
   else $('uSum').style.display='none';
   $('uMK').style.display=c?'grid':'none'; $('uSave').style.display=c?'block':'none';
   renderPending(); renderToday();
@@ -551,6 +526,16 @@ function openPick(){
 }
 function pickSet(cid){ closeSheet('pickSheet'); U.cid=cid; LS.set(LASTC,cid); renderUretim(); setTimeout(()=>$('uM').focus(),60); }
 function nextN(oid,cid){ return rollsOf(oid,cid).reduce((a,r)=>Math.max(a,r.n||0),0)+1; }
+/* Sipariş içi top numarası (ono): siparişin tüm topları 1, 2, 3… (desen/renkten bağımsız) */
+function nextOno(oid){ return rollsOf(oid).reduce((a,r)=>Math.max(a,r.ono||0),0)+1; }
+const onoOf=r=>r.ono||r.n;
+function backfillOno(){ // eski toplara sipariş numarası ver (kayıt sırasına göre), bir kez
+  if(window.Cloud&&window.Cloud.on&&!window.Cloud.ready) return;
+  const ops=[]; S.orders.forEach(o=>{ const rs=rollsOf(o.id); if(!rs.some(r=>!r.ono)) return;
+    let k=rs.reduce((a,r)=>Math.max(a,r.ono||0),0); rs.filter(r=>!r.ono).sort((a,b)=>a.ts-b.ts).forEach(r=>ops.push(['put','rolls',{...r,ono:++k}])); });
+  if(ops.length) DB.write(ops);
+}
+const orderQty=o=>o?o.colors.reduce((a,c)=>a+(c.qty||0),0):0;
 // Seri no hiç tekrar kullanılmaz (u_meta.lastSerial).
 function nextSerial(){ return Math.max(S.meta.lastSerial||0,S.rolls.reduce((a,r)=>Math.max(a,parseInt(r.id)||0),0))+1; }
 $('uM').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('uKg').focus(); } });
@@ -564,25 +549,25 @@ function saveRoll(){
   if(!(kg>0)){ toast('Ağırlık (kg) girin'); return $('uKg').focus(); }
   if(m>5000||kg>2000) return note('Metre veya kg çok büyük görünüyor. Kontrol edin.');
   const ser=nextSerial();
-  const r={id:String(ser).padStart(6,'0'),orderId:o.id,colorId:c.id,n:nextN(o.id,c.id),m:Math.round(m*100)/100,kg:Math.round(kg*100)/100,date:today(),ts:Date.now()};
+  const r={id:String(ser).padStart(6,'0'),orderId:o.id,colorId:c.id,n:nextN(o.id,c.id),ono:nextOno(o.id),m:Math.round(m*100)/100,kg:Math.round(kg*100)/100,date:today(),ts:Date.now()};
   DB.write([['put','rolls',r],['put','meta',{...S.meta,lastSerial:ser}]]);
   $('uM').value=''; $('uKg').value=''; $('uM').focus();
-  toast(`Kaydedildi ✓ Top ${r.n} · ${f1(r.m)} m · ${f1(r.kg)} kg`);
+  toast(`Kaydedildi ✓ Top ${r.ono} · ${f1(r.m)} m · ${f1(r.kg)} kg`);
 }
 /* Etiket bekleyenler: kaydedilmiş ama etiketi henüz basılmamış toplar (eski kayıtlar basılmış sayılır) */
 const pendingRolls=()=>S.rolls.filter(r=>!r.printTs&&!r.parti&&r.ts>0&&orderById(r.orderId)&&!orderById(r.orderId).archived).sort((a,b)=>a.ts-b.ts);
 function renderPending(){
   const l=pendingRolls(); $('uPendN').textContent=l.length;
   $('uPend').innerHTML=l.length?`<div class="tot" style="margin:0 0 6px"><span>${l.length} top</span><span>${f1(l.reduce((a,r)=>a+r.m,0))} m</span><span>${f1(l.reduce((a,r)=>a+r.kg,0))} kg</span></div>`+
-      l.map((r,i)=>rollRow(r,{pos:i+1})).join('')+`<button class="btn" onclick="printPending()">🖨 ${l.length} etiketi yazdır</button>`
+      l.map(r=>rollRow(r,{pos:onoOf(r)})).join('')+`<button class="btn" onclick="printPending()">🖨 ${l.length} etiketi yazdır</button>`
     :`<p class="small" style="margin:0">Etiket bekleyen top yok</p>`;
 }
 function printPending(){ const l=pendingRolls(); if(!l.length) return; printRolls(l);
   const ts=Date.now(); DB.write(l.map(r=>['put','rolls',{...r,printTs:ts}])); }
 function rollRow(r,{withOrder=true,actions=true,extra='',pos=0}={}){
   const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?',hex:'#ccc'}, q=c.qty||0;
-  return `<div class="roll">${pos?`<span class="pos">${pos}</span>`:''}${o?thumbHTML(prodOf(o,c),36):''}
-    <div class="tx"><div><b>Top ${r.n}${q?' / '+q:''}</b> · ${esc(o?cLabel(o,c):c.name)}</div>
+  return `<div class="roll">${pos?`<span class="pos" title="Sipariş top no">${pos}</span>`:''}${o?thumbHTML(prodOf(o,c),36):''}
+    <div class="tx"><div><b>Top ${onoOf(r)}${o?' / '+orderQty(o):''}</b> · ${esc(o?cLabel(o,c):c.name)} <span class="small">(${r.n}/${q})</span></div>
       <small class="small">${withOrder?esc(oLabel(o))+' · ':''}No ${r.id} · ${fmtTs(r.ts).slice(-5)} <span class="tag ${r.loadTs?'S':'D'}">${r.loadTs?'Sevk':'Depoda'}</span></small></div>
     <div class="mk">${f1(r.m)} m<small>${f1(r.kg)} kg</small></div>
     ${actions?`<button class="ib" onclick="reprint('${r.id}')" aria-label="etiket yazdır">🖨</button><button class="ib del" onclick="delRoll('${r.id}')" aria-label="sil">🗑</button>`:''}${extra}</div>`;
@@ -599,7 +584,7 @@ async function delRoll(id){
   const r=S.rolls.find(x=>x.id===id); if(!r) return; const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?'};
   if(r.loadTs){ if(!await ask(`Bu top sevk edilmiş (${fmtTs(r.loadTs)}).\nÖnce sevkiyatı geri alınsın mı? (Top depoya döner.)`)) return;
     unshipRoll(r); return toast('Sevk geri alındı (sevkiyattan çıkarıldı)'); }
-  if(!await ask(`Bu top silinsin mi?\n${o?oLabel(o):''} · ${o?cLabel(o,c):c.name}\nTop ${r.n} · ${f1(r.m)} m · ${f1(r.kg)} kg · No ${r.id}\n\n(Yapıştırılmış etiket artık tanınmaz.)`)) return;
+  if(!await ask(`Bu top silinsin mi?\n${o?oLabel(o):''} · ${o?cLabel(o,c):c.name}\nTop ${onoOf(r)} · ${f1(r.m)} m · ${f1(r.kg)} kg · No ${r.id}\n\n(Yapıştırılmış etiket artık tanınmaz.)`)) return;
   DB.write([['del','rolls',id]]); toast('Silindi');
 }
 
@@ -626,7 +611,7 @@ function labelHTML(r,L){
       <div class="b" style="font-size:1.25em">${p?'Desen '+esc(p):''}</div>
       <div class="b"><span class="sw" style="background:${c.hex}"></span>${esc(c.name)}</div>
       <div class="mk">${f1(r.m)} m · ${f1(r.kg)} kg</div>
-      <div class="b" style="font-size:1.1em">Top ${r.n}${c.qty?' / '+c.qty:''}</div>
+      <div class="b" style="font-size:1.35em">Top ${onoOf(r)} / ${orderQty(o)} <span style="font-size:.62em;font-weight:700">(renk ${r.n}/${c.qty||'?'})</span></div>
       <div class="sn" style="font-size:1.15em">No ${r.id}</div>
       <div style="font-size:.85em">${fmtD(r.date)}</div>
     </div>`;
@@ -639,7 +624,7 @@ function printRolls(list){
 }
 function testLabel(){
   const o=orderById(U.o)||act()[0], c=o&&(colorOf(o,U.cid)||o.colors[0]);
-  const r={id:'000000',orderId:o?o.id:'',colorId:c?c.id:'',n:1,m:123.45,kg:32.1,date:today(),ts:Date.now()};
+  const r={id:'000000',orderId:o?o.id:'',colorId:c?c.id:'',n:1,ono:1,m:123.45,kg:32.1,date:today(),ts:Date.now()};
   if(!o){ S.orders.push({id:'__t',customer:'Deneme Müşteri',no:'001',colors:[{id:'__c',name:'Özbek bordo',hex:'#5e1a1d',qty:20,prod:'4021'}]}); r.orderId='__t'; r.colorId='__c'; printRolls([r]); S.orders=S.orders.filter(x=>x.id!=='__t'); return; }
   printRolls([r]);
 }
@@ -706,13 +691,13 @@ function purgeDue(){ if(window.Cloud&&window.Cloud.on&&!window.Cloud.ready) retu
 setInterval(()=>{ purgeDue(); if(page==='orders') renderOrders(); },60000);
 
 /* ---- Desen kütüphanesi (her desen no için tek fotoğraf) ----
-   u_desen/{id} -> {id, no, url, thumb, ts}. Fotoğraflar Firebase Storage'da: users/{uid}/desen/{id}/... */
+   u_desen/{id} -> {id, no, thumb, fs, ts} (küçük resim); u_resim/{id} -> {id, data} (büyük resim, açılınca okunur) */
 const dKey=no=>'d_'+String(no||'').trim().toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}-]+/gu,'_');
 const desenOf=no=>no?S.desen.find(d=>d.id===dKey(no)):null;
 function thumbHTML(no,size=40,click=true){
   const d=desenOf(no);
-  if(!d||!(d.thumb||d.url)) return `<span class="thumb none" style="width:${size}px;height:${size}px">🧵</span>`;
-  return `<img class="thumb" src="${esc(d.thumb||d.url)}" alt="""" loading="lazy" style="width:${size}px;height:${size}px"${click?` onclick="event.stopPropagation();viewImg('${esc(d.id)}')"`:''}>`;
+  if(!d||!d.thumb) return `<span class="thumb none" style="width:${size}px;height:${size}px">🧵</span>`;
+  return `<img class="thumb" src="${esc(d.thumb)}" alt="" loading="lazy" style="width:${size}px;height:${size}px"${click?` onclick="event.stopPropagation();viewImg('${esc(d.id)}')"`:''}>`;
 }
 function shrink(file,max,q){ return new Promise(async(res,rej)=>{ try{
   const bmp=await createImageBitmap(file,{imageOrientation:'from-image'}); const k=Math.min(1,max/Math.max(bmp.width,bmp.height));
@@ -816,7 +801,7 @@ async function saveOrder(){
   used.forEach(r=>M.colors.forEach(c=>{ const q=r.q[c.name]; if(q>0) colors.push({id:r.ids[c.name]||uid(),name:c.name,hex:c.hex,qty:q,prod:r.no}); }));
   if(old){ const keep=new Set(colors.map(c=>c.id)), lost=old.colors.filter(c=>!keep.has(c.id)&&hasRolls(old.id,c.id));
     if(lost.length) return note('Bu satırların topları var, adet 0 yapılamaz:\n'+lost.map(c=>cLabel(old,c)).join('\n')); }
-  const o={...(old||{id:uid(),ts:Date.now()}),customer,no,date,product:used.map(r=>r.no).join(', '),colors};
+  const o={...(old||{id:uid(),ts:Date.now()}),customer,no,date,colors};
   DB.write([['put','orders',o]]); closeSheet('orderSheet'); toast(old?'Sipariş güncellendi ✓':'Sipariş eklendi ✓');
   if(!old){ U={cu:o.customer,o:o.id,cid:''}; saveSel(); renderUretim(); }
 }
@@ -840,7 +825,7 @@ function handleCode(raw){
   const now=Date.now(); if(code===lastCode&&now-lastAt<2500) return; lastCode=code; lastAt=now;
   const r=S.rolls.find(x=>x.id===code);
   if(!r){ beep(false); return showRes('bad','❌ Bilinmeyen top: '+code,'Bu numara sistemde yok (silinmiş olabilir).'); }
-  const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?'}, info=`${o?oLabel(o):'?'} · ${o?cLabel(o,c):c.name} · Top ${r.n} · ${f1(r.m)} m · ${f1(r.kg)} kg`;
+  const o=orderById(r.orderId), c=colorOf(o,r.colorId)||{name:'?'}, info=`${o?oLabel(o):'?'} · ${o?cLabel(o,c):c.name} · Top ${onoOf(r)} · ${f1(r.m)} m · ${f1(r.kg)} kg`;
   if(session.includes(code)){ beep(false); return showRes('warn','⚠️ Bu top az önce okutuldu',info); }
   if(r.loadTs){ beep(false); return showRes('warn','⚠️ Bu top daha önce sevk edildi',info+' · '+fmtTs(r.loadTs)); }
   const so=$('sOrder').value; if(so&&r.orderId!==so){ beep(false); return showRes('bad','❌ Başka siparişin topu!',info); }
@@ -873,12 +858,14 @@ function renderHist(){
   ho.innerHTML=`<option value="">Tüm siparişler</option>`+l.map(o=>`<option value="${o.id}">${esc(oLabel(o))}</option>`).join('');
   ho.value=l.find(o=>o.id===po)?po:'';
   const live=new Set(l.map(o=>o.id)), st=$('hState').value;
-  const list=S.rolls.filter(r=>live.has(r.orderId)&&(!ho.value||r.orderId===ho.value)&&(!st||(st==='S')===!!r.loadTs)).sort((a,b)=>b.date.localeCompare(a.date)||b.ts-a.ts);
-  if(!list.length){ $('histList').innerHTML=`<div class="card empty">Henüz top yok</div>`; return; }
+  const all=S.rolls.filter(r=>live.has(r.orderId)&&(!ho.value||r.orderId===ho.value)&&(!st||(st==='S')===!!r.loadTs)).sort((a,b)=>b.date.localeCompare(a.date)||b.ts-a.ts);
+  if(!all.length){ $('histList').innerHTML=`<div class="card empty">Henüz top yok</div>`; return; }
+  const MAX=400, list=all.slice(0,MAX);
   const days=[...new Set(list.map(r=>r.date))];
   $('histList').innerHTML=days.map(day=>{ const dl=list.filter(x=>x.date===day);
     return `<div class="dayh">${fmtD(day)} <span class="small" style="font-weight:600">· ${dl.length} top · ${f1(dl.reduce((a,x)=>a+x.m,0))} m · ${f1(dl.reduce((a,x)=>a+x.kg,0))} kg</span></div>
-      <div class="card">${dl.map(r=>rollRow(r,{withOrder:!ho.value})).join('')}</div>`; }).join('');
+      <div class="card">${dl.map(r=>rollRow(r,{withOrder:!ho.value})).join('')}</div>`; }).join('')
+    +(all.length>MAX?`<p class="small" style="text-align:center">Son ${MAX} top gösteriliyor (toplam ${all.length}). Daha eskileri için yukarıdan sipariş seçin.</p>`:'');
 }
 $('hOrder').onchange=$('hState').onchange=renderHist;
 
@@ -898,7 +885,7 @@ $('shareBtn').onclick=()=>{ if(rOrder) shareOrders([rOrder]); };
 function drawReport(o){
   const W=1080,P=56,tw=W-2*P, FONT='system-ui,-apple-system,"Segoe UI",Roboto,Tahoma,sans-serif';
   const T=calcOrder(o), G=groupsOf(o);
-  const rolls=S.rolls.filter(r=>r.orderId===o.id).sort((a,b)=>{ const ca=o.colors.findIndex(c=>c.id===a.colorId), cb=o.colors.findIndex(c=>c.id===b.colorId); return ca-cb||a.n-b.n; });
+  const rolls=S.rolls.filter(r=>r.orderId===o.id).sort((a,b)=>onoOf(a)-onoOf(b)||a.ts-b.ts);
   const cv=document.createElement('canvas'); cv.width=W; cv.height=1300+o.colors.length*96+G.length*70+rolls.length*48+200; const x=cv.getContext('2d');
   const font=(s,w=400)=>x.font=`${w} ${s}px ${FONT}`;
   const fit=(s,max)=>{ s=String(s); if(x.measureText(s).width<=max) return s; while(s.length&&x.measureText(s+'…').width>max) s=s.slice(0,-1); return s+'…'; };
@@ -946,7 +933,7 @@ function drawReport(o){
     if(i){ x.fillStyle='#f0eeea'; x.fillRect(P+16,y,tw-32,2); }
     text(r.id,P+20,cy,{size:20,wt:700,col:MUTE});
     dot(P+160,cy,10,c.hex); text(cLabel(o,c),P+178,cy,{size:21,wt:600,max:360});
-    text(String(r.n),P+560,cy,{size:21,wt:700,align:'center'});
+    text(String(onoOf(r)),P+560,cy,{size:21,wt:700,align:'center'});
     text(f1(r.m),P+680,cy,{size:21,wt:800,col:PREP,align:'right'});
     text(f1(r.kg),P+800,cy,{size:21,wt:800,col:PREP,align:'right'});
     text(r.loadTs?'Sevk':'Depoda',W-P-20,cy,{size:19,wt:700,col:r.loadTs?SHIP:MUTE,align:'right'});
@@ -1036,9 +1023,9 @@ function nextSevk(){ return Math.max(S.meta.lastSevk||0,S.ships.reduce((a,s)=>Ma
 const shipRolls=sh=>sh.rollIds.map(id=>S.rolls.find(r=>r.id===id)).filter(Boolean);
 function shipLines(sh){ // desen/renk sırasına göre sıralı satırlar
   return shipRolls(sh).map(r=>({r,o:orderById(r.orderId),c:null})).map(x=>({...x,c:colorOf(x.o,x.r.colorId)||{name:'?',hex:'#ccc'}}))
-    .sort((a,b)=>String(a.o?a.o.no:'').localeCompare(String(b.o?b.o.no:''),'tr')||String(prodOf(a.o||{},a.c)).localeCompare(String(prodOf(b.o||{},b.c)),'tr',{numeric:true})||a.c.name.localeCompare(b.c.name,'tr')||a.r.n-b.r.n);
+    .sort((a,b)=>String(a.o?a.o.no:'').localeCompare(String(b.o?b.o.no:''),'tr',{numeric:true})||onoOf(a.r)-onoOf(b.r));
 }
-function shipGroups(lines){ const g=[]; lines.forEach(l=>{ const k=(l.o?l.o.id:'')+'|'+l.c.id; let x=g.find(y=>y.k===k); if(!x) g.push(x={k,o:l.o,c:l.c,lines:[]}); x.lines.push(l); }); return g; }
+function shipGroups(lines){ const g=[]; lines=lines.slice().sort((a,b)=>String(prodOf(a.o||{},a.c)).localeCompare(String(prodOf(b.o||{},b.c)),'tr',{numeric:true})||a.c.name.localeCompare(b.c.name,'tr')); lines.forEach(l=>{ const k=(l.o?l.o.id:'')+'|'+l.c.id; let x=g.find(y=>y.k===k); if(!x) g.push(x={k,o:l.o,c:l.c,lines:[]}); x.lines.push(l); }); return g; }
 const sumM=ls=>ls.reduce((a,l)=>a+(l.r.m||0),0), sumK=ls=>ls.reduce((a,l)=>a+(l.r.kg||0),0);
 const fileBase=sh=>('Ceki-Listesi-'+svkNo(sh.no)+'-'+sh.customer).replace(/[^\p{L}\p{N}]+/gu,'-');
 
@@ -1100,9 +1087,9 @@ async function shareFile(blob,name,title,fallbackMsg){
 function drawPackingPages(sh){
   const W=1240,H=1754,P=70, lines=shipLines(sh), groups=shipGroups(lines), pages=[];
   const orders=sh.orderIds.map(orderById).filter(Boolean);
-  // satır listesi: grup başlığı yok; her grup sonunda ara toplam
-  const items=[]; groups.forEach(g=>{ g.lines.forEach(l=>items.push({t:'r',l})); items.push({t:'s',g}); }); items.push({t:'T'});
-  const RH=34, FIRST=21, NEXT=34; // sayfa başına satır
+  // satırlar (sipariş no + top no sırasıyla) → genel toplam → desen/renk özeti
+  const items=lines.map(l=>({t:'r',l})); items.push({t:'T'},{t:'H'}); groups.forEach(g=>items.push({t:'s',g}));
+  const RH=34, FIRST=19, NEXT=30; // sayfa başına satır
   const chunks=[]; let i=0, first=true; while(i<items.length){ const n=first?FIRST:NEXT; chunks.push(items.slice(i,i+n)); i+=n; first=false; }
   const FONT='Arial,Helvetica,sans-serif', BR='#0f3b40', MUTE='#555';
   const cols=[['Sıra',P+10,'left'],['Seri No',P+80,'left'],['Sipariş',P+215,'left'],['Desen',P+345,'left'],['Renk',P+480,'left'],['Top No',P+760,'center'],['Metre',P+930,'right'],['Kg',W-P-10,'right']];
@@ -1135,21 +1122,22 @@ function drawPackingPages(sh){
       if(it.t==='r'){ seq++; const {r,o,c}=it.l; if(seq%2===0){ x.fillStyle='#f6f8f8'; x.fillRect(P,y,W-2*P,RH); }
         T(seq,P+10,y+RH/2,{size:20,col:MUTE}); T(r.id,P+80,y+RH/2,{size:20,wt:700});
         T(o&&o.no?'#'+o.no:'—',P+215,y+RH/2,{size:20,max:120}); T(prodOf(o||{},c)||'—',P+345,y+RH/2,{size:20,wt:700,max:125});
-        T(c.name,P+480,y+RH/2,{size:20,max:240}); T(r.n,P+760,y+RH/2,{size:20,al:'center'});
+        T(c.name,P+480,y+RH/2,{size:20,max:240}); T(onoOf(r),P+760,y+RH/2,{size:20,al:'center'});
         T(f1(r.m),P+930,y+RH/2,{size:20,wt:700,al:'right'}); T(f1(r.kg),W-P-10,y+RH/2,{size:20,wt:700,al:'right'});
         y+=RH; line(y,'#e4e4e4'); }
       else if(it.t==='s'){ const g=it.g; x.fillStyle='#e3eded'; x.fillRect(P,y,W-2*P,RH);
-        T(`Ara toplam · ${prodOf(g.o||{},g.c)?'Desen '+prodOf(g.o||{},g.c)+' – ':''}${g.c.name}`,P+80,y+RH/2,{size:19,wt:700,col:BR,max:600});
+        T(`${prodOf(g.o||{},g.c)?'Desen '+prodOf(g.o||{},g.c)+' – ':''}${g.c.name}`,P+80,y+RH/2,{size:19,wt:700,col:BR,max:600});
         T(g.lines.length+' top',P+760,y+RH/2,{size:19,wt:700,col:BR,al:'center'});
         T(f1(sumM(g.lines)),P+930,y+RH/2,{size:19,wt:700,col:BR,al:'right'}); T(f1(sumK(g.lines)),W-P-10,y+RH/2,{size:19,wt:700,col:BR,al:'right'});
         y+=RH+6; }
-      else { x.fillStyle=BR; x.fillRect(P,y,W-2*P,48);
+      else if(it.t==='T'){ x.fillStyle=BR; x.fillRect(P,y,W-2*P,48);
         T('GENEL TOPLAM',P+80,y+24,{size:22,wt:700,col:'#fff'}); T(lines.length+' top',P+760,y+24,{size:22,wt:700,col:'#fff',al:'center'});
         T(f1(sumM(lines)),P+930,y+24,{size:22,wt:700,col:'#fff',al:'right'}); T(f1(sumK(lines)),W-P-10,y+24,{size:22,wt:700,col:'#fff',al:'right'});
-        y+=48;
-        if(pi===chunks.length-1){ y+=80; T('Teslim eden',P+120,y,{size:20,col:MUTE,al:'center'}); T('Teslim alan',W-P-120,y,{size:20,col:MUTE,al:'center'});
-          x.fillStyle='#999'; x.fillRect(P,y+70,240,1); x.fillRect(W-P-240,y+70,240,1); } }
+        y+=48; }
+      else if(it.t==='H'){ y+=22; T('Desen / renk özeti',P+10,y+RH/2,{size:22,wt:700,col:BR}); y+=RH+4; }
     });
+    if(pi===chunks.length-1){ y+=70; T('Teslim eden',P+120,y,{size:20,col:MUTE,al:'center'}); T('Teslim alan',W-P-120,y,{size:20,col:MUTE,al:'center'});
+      x.fillStyle='#999'; x.fillRect(P,y+70,240,1); x.fillRect(W-P-240,y+70,240,1); }
     T(`${svkNo(sh.no)} · Sayfa ${pi+1} / ${chunks.length}`,W/2,H-40,{size:18,col:'#999',al:'center'});
     pages.push(cv);
   });
@@ -1226,16 +1214,19 @@ function shareXlsx(id){
   rows.push([B('Toplam top'),{v:lines.length,s:1}],[B('Toplam metre'),{v:Math.round(sumM(lines)*100)/100,s:1}],[B('Toplam kg'),{v:Math.round(sumK(lines)*100)/100,s:1}],[]);
   rows.push(['Sıra','Seri No','Sipariş','Desen','Renk','Top No','Metre','Kg'].map(H));
   let seq=0;
-  groups.forEach(g=>{ g.lines.forEach(({r,o,c})=>{ seq++; rows.push([N0(seq),T(r.id),T(o&&o.no?'#'+o.no:'—'),T(prodOf(o||{},c)||'—'),T(c.name),N0(r.n),N2(r.m),N2(r.kg)]); });
-    rows.push([SL(''),SL('Ara toplam'),SL(''),SL(prodOf(g.o||{},g.c)||''),SL(g.c.name),{v:g.lines.length,s:7},SN(sumM(g.lines)),SN(sumK(g.lines))]); });
+  lines.forEach(({r,o,c})=>{ seq++; rows.push([N0(seq),T(r.id),T(o&&o.no?'#'+o.no:'—'),T(prodOf(o||{},c)||'—'),T(c.name),N0(onoOf(r)),N2(r.m),N2(r.kg)]); });
   rows.push([H(''),H('GENEL TOPLAM'),H(''),H(''),H(''),{v:lines.length,s:3},GN(sumM(lines)),GN(sumK(lines))]);
+  rows.push([],[{v:'Desen / renk özeti',s:1}],['','','',H('Desen'),H('Renk'),H('Top'),H('Metre'),H('Kg')]);
+  groups.forEach(g=>rows.push(['','','',SL(prodOf(g.o||{},g.c)||'—'),SL(g.c.name),{v:g.lines.length,s:7},SN(sumM(g.lines)),SN(sumK(g.lines))]));
   const blob=xlsxFromRows(rows,[14,11,11,12,22,8,11,11],svkNo(sh.no));
   shareFile(blob,fileBase(sh)+'.xlsx','Çeki listesi '+svkNo(sh.no),'Excel dosyası telefona indirildi (İndirilenler). WhatsApp’ta 📎 → Belge ile müşteriye gönderebilirsiniz.');
 }
 
 /* ================= GENEL ================= */
-function renderAll(){ norm(); purgeDue(); renderUretim(); renderOrders(); renderYukle(); renderHist(); renderRep(); renderShips(); renderBk(); renderBkBanner(); }
-renderAll();
+// Sadece açık olan sayfa çizilir (sayfa değişince go() yeniden çizer)
+const PAGES={uretim:[renderUretim],orders:[renderOrders,renderBk],yukle:[renderYukle,renderShips],hist:[renderHist],rep:[renderRep]};
+function renderAll(){ norm(); purgeDue(); (PAGES[page]||[]).forEach(f=>f()); renderBkBanner(); }
+renderAll(); backfillOno();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 /* Uygulama olarak yükleme (Chrome) */
 let installEvt=null;
